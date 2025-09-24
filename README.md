@@ -1,0 +1,1 @@
+# FAIRy Skeleton\n\nA minimal Streamlit prototype with a Home page (project dashboard) and a per-project tabbed wizard.\n\n## Run\n```bash\npython -m venv .venv && source .venv/bin/activate\npip install -r requirements.txt\nstreamlit run app.py\n```\n
