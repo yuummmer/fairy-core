@@ -1,7 +1,12 @@
 # ✨ FAIRy Skeleton
 
-A minimal [Streamlit](https://streamlit.io/) prototype for preparing datasets for FAIR-compliant submission.  
-This skeleton provides a **dashboard for projects** and a **tabbed wizard** for guiding metadata preparation.
+🚧 **Prototype / Smoketest** 🚧  
+This is an experimental [Streamlit](https://streamlit.io/) prototype for FAIRy —  
+a local-first validator and packager for FAIR-compliant data submissions.  
+
+- ✅ Shows basic flows: create project, upload CSV, validate, export placeholder  
+- ⚠️ Not production-ready — meant for demos, testing, and early feedback  
+- 🔓 The clean, open-source FAIRy Core engine (validator, templates, CLI) will live in a separate repo soon
 
 ---
 
