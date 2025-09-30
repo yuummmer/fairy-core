@@ -1,0 +1,19 @@
+name: "GEO RNA-seq (minimal)"
+version: "v0"
+about: "Starter list of fields commonly required for GEO RNA-seq submissions. No validation yet."
+required:
+  sample:
+    - sample_id
+    - organism
+    - tissue
+    - condition
+  experiment:
+    - library_strategy
+    - library_layout
+    - instrument_model
+    - read_length
+    - strandedness
+  run:
+    - files[]   # at least one data file reference
+notes:
+  - "This is a store-only stub. Real JSON Schema will replace this in a later story."

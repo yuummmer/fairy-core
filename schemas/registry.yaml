@@ -1,0 +1,5 @@
+templates:
+  geo_rnaseq_minimal:
+    title: "GEO RNA-seq (minimal)"
+    path: "schemas/geo/rnaseq_minimal.yaml"
+    latest: "v0"
