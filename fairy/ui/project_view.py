@@ -8,7 +8,10 @@ import streamlit as st
 from fairy.core.storage import update_project_timestamp
 from fairy.utils.projects import project_dir, load_manifest, save_manifest
 from fairy.utils.ui import status_chip, format_bytes, shape_badge
-
+from fairy.validation.checks import (
+    missing_required, duplicate_in_column, column_name_mismatch
+)
+from fairy.ui.preview_utils import run_validators, build_tooltip_matrix, styled_preview
 
 def _get_selected_project(projects: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     pid = st.session_state.get("selected_project_id")
@@ -106,7 +109,7 @@ def render_project(projects: List[Dict[str, Any]], save_and_refresh) -> None:
             update_project_timestamp(p)
             save_and_refresh(projects)
 
-    # ---- Metadata (UPDATED) -------------------------------------------------
+    # ---- Metadata -------------------------------------------------
     with tabs[4]:
         st.subheader("Metadata (prototype)")
         if msg := st.session_state.get("last_save_notice"):
@@ -142,9 +145,102 @@ def render_project(projects: List[Dict[str, Any]], save_and_refresh) -> None:
             except Exception as e:
                 st.error(f"Failed to read file: {e}")
 
+            if df is None:
+                st.error("Could not read a tabular dataset from this file. Try CSV/TSV/JSONL")
+                st.stop()
+
+            # force string column names
+            df.columns = [str(c) for c in df.columns]
+
+            if df.empty:
+                st.warning("The file loaded, but it has 0 rows.")
+                st.stop()
+
+            if len(df.columns) == 0:
+               st.error("The file has no columns. Ensure there is a header row (CSV/TSV)")
+               st.stop()
+
             if df is not None:
-                st.write(f"Loaded **{len(df):,}** rows × **{len(df.columns):,}** columns")
-                st.dataframe(df.head(25), use_container_width=True)
+                total_rows, total_cols = df.shape
+
+                # Header metrics
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Rows", f"{total_rows:,}")
+                m2.metric("Columns", f"{total_cols:,}")
+                m3.metric("File", uploaded.name)
+
+                # Choose required fields (defaults to common ones if present)
+                options = list(df.columns)
+                expected = ["sample_id", "organism", "condition"]
+                default_required = [c for c in expected if c in options]
+                
+                req = st.multiselect(
+                    "Required fields (highlight empties)",
+                    options = options,
+                    default = default_required,
+                    help = "Empty cells in these columns are marked as errors"
+                )
+                
+                if total_rows < 25:
+                    n = st.number_input(
+                        "Rows to preview",
+                        min_value=1,
+                        max_value=total_rows,
+                        value=total_rows,
+                        step=1,
+                        key="preview_rows",
+                    )
+                else:
+                    n = st.slider(
+                        "Rows to preview",
+                        min_value=25,
+                        max_value=min(100, total_rows),
+                        value=25,
+                        key="preview_rows",
+                    )
+                
+                # Run validators (modular hooks)
+                validators = [
+                missing_required(req),
+                duplicate_in_column("sample_id"),
+                column_name_mismatch(),
+                ]
+                masks, issues = run_validators(df, validators)
+                tips = build_tooltip_matrix(df, issues)
+
+                # Slice BEFORE styling
+                preview_df  = df.head(int(n))
+                masks_slice = {name: m.loc[preview_df.index, preview_df.columns] for name, m in masks.items()}
+                tips_slice  = tips.loc[preview_df.index, preview_df.columns]
+
+                styler = styled_preview(preview_df, masks_slice, tips_slice)
+
+                # Column-name mismatch warnings(header-level)
+                for iss in [i for i in issues if i.kind == "column_name_mismatch"]:
+                    st.warning(iss.message + (f" Hint: {iss.hint}" if iss.hint else ""))
+                # Raw grid
+                st.markdown("#### Data (scrollable)")
+                st.dataframe(df.head(n), use_container_width=True, hide_index=True, height=400)
+
+                # Highlights view with tooltips
+                st.markdown("#### Validation highlights (first rows)")
+                st.caption("Hover for reasons. Colors: **red = error**, **gold = warning**.")
+                st.table(styler)
+
+                # Issue summary
+                if issues:
+                    with st.expander(f"Show {len(issues)} validation notes"):
+                        iss_dif= pd.DataFrame([{
+                            "severity": i.severity,
+                            "kind": i.kind,
+                            "row": (i.row +1) if i.row is not None else None,
+                            "column": i.col,
+                            "message": i.message,
+                            "hint": i.hint
+                        } for i in issues])
+                        st.dataframe(iss_dif, use_container_width=True, hide_index=True)
+                else:
+                    st.success("No issues detected in the previewed rows.")
 
                 save_as = st.text_input("Save as", value=uploaded.name)
                 template_options = ["GEO RNA-seq minimal", "SRA RNA-seq minimal"]
@@ -162,6 +258,7 @@ def render_project(projects: List[Dict[str, Any]], save_and_refresh) -> None:
                         "bytes": len(raw),
                         "hash": h.hexdigest(),
                         "saved_at": time.time(),
+                        "rows": len(df),
                         "columns": list(df.columns),
                         "templates": [{"name": t, "status": "pending"} for t in chosen_templates]
                     }
@@ -175,7 +272,7 @@ def render_project(projects: List[Dict[str, Any]], save_and_refresh) -> None:
                         # merge columns + templates
                         existing_cols = set(existing.get("columns", []))
                         existing["columns"] = sorted(existing_cols.union(entry["columns"]))
-                        existing["rows"] = max(existing.get("rows, 0") or 0, entry["rows"])
+                        existing["rows"] = max(existing.get("rows", 0) or 0, entry["rows"])
                         # merge templates by name
                         existing_templates = {t["name"]: t for t in existing.get("templates", [])}
                         for t in entry["templates"]:
