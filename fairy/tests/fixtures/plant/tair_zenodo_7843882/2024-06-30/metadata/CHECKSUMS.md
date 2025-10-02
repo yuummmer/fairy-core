@@ -1,0 +1,8 @@
+4d89618f81170f22a80a7c0fb021476d  ATH_GO_GOSLIM.txt.gz
+459b5436d325184c6e3fd01f70754e84  Araport11_GFF3_genes_transposons.20240701.gff.gz
+5b27f0dbe1d74e80f8857c3c9d4f06ee  Araport11_GTF_genes_transposons.20240701.gtf.gz
+9ea2dda2904e119855ea6f2863df2b62  Locus_Germplasm_Phenotype_20240630.txt.gz
+fffb4c94a31529e871069e6f417f1ea3  Locus_Published_20240630.txt.gz
+8d025490884baf4c5c74ca90e98cbf1f  gene_aliases_20240630.txt.gz
+ecea19c4cef159d6a665c8cf006d04a0  po_anatomy_gene_arabidopsis_tair.assoc.gz
+ddd0e9ae2299f662e671d7f300c41ced  po_temporal_gene_arabidopsis_tair.assoc.gz

@@ -1,0 +1,33 @@
+dataset: tair_zenodo_7843882
+version: "2024-06-30"
+doi: "10.5281/zenodo.7843882"
+license: "CC-BY-4.0"
+files:
+  - id: go_goslim
+    path: raw/ATH_GO_GOSLIM.txt.gz
+    type: go_annotations
+    compression: gzip
+  - id: po_anatomy
+    path: raw/po_anatomy_gene_arabidopsis_tair.assoc.gz
+    type: po_annotations
+    compression: gzip
+  - id: po_temporal
+    path: raw/po_temporal_gene_arabidopsis_tair.assoc.gz
+    type: po_annotations
+    compression: gzip
+  - id: gff3_araport11
+    path: raw/Araport11_GFF3_genes_transposons.20240701.gff.gz
+    type: gff3
+    compression: gzip
+  - id: gtf_araport11
+    path: raw/Araport11_GTF_genes_transposons.20240701.gtf.gz
+    type: gtf
+    compression: gzip
+  - id: locus_published
+    path: raw/Locus_Published_20240630.txt.gz
+    type: locus_pubs
+    compression: gzip
+  - id: gene_aliases
+    path: raw/gene_aliases_20240630.txt.gz
+    type: aliases
+    compression: gzip
