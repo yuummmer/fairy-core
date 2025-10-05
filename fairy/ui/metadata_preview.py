@@ -4,7 +4,7 @@ import io
 import pandas as pd
 import streamlit as st
 
-from fairy.validation.checks import (
+from validation.checks import (
     missing_required, duplicate_in_column, column_name_mismatch
 )
 from fairy.ui.preview_utils import run_validators, build_tooltip_matrix, styled_preview
@@ -67,7 +67,7 @@ def render_metadata_preview():
         max_rows = max(1, total_rows)
         default_rows = max_rows
     
-    n = st.slider("Rows to preview", min_rows, max_rows, default_rows, key = "preview_rows")
+    #n = st.slider("Rows to preview", min_rows, max_rows, default_rows, key = "preview_rows")
 
     # Validators (modular hooks)
     validators = [

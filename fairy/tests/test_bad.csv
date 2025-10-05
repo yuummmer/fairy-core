@@ -1,0 +1,6 @@
+sample_id,organism,condition,read1,read2
+S1,human,control,run1_S1_R1.fastq.gz,run1_S1_R2.fastq.gz
+S2,,treated,run1_S2_R1.fastq.gz,run1_S2_R2.fastq.gz
+S2,human,treated,run1_S2_R1.fastq.gz,run1_S2_R2.fastq.gz
+,mouse,control,run1_S3_R1.fastq.gz,run1_S3_R2.fastq.gz
+S4,human,control,run1_S4_R1.fastq.gz,run1_S4_R2.fastq.gz

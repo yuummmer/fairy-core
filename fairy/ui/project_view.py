@@ -4,9 +4,12 @@ from datetime import datetime, timezone
 import pandas as pd
 import hashlib, io, json, time
 import streamlit as st
+import pandera as pa
 
+from pandera import Column, DataFrameSchema
+from pathlib import Path
 from fairy.core.storage import update_project_timestamp
-from fairy.utils.projects import project_dir, load_manifest, save_manifest
+from fairy.utils.projects import project_dir, exports_dir, load_manifest, save_manifest
 from fairy.utils.ui import status_chip, format_bytes, shape_badge
 from fairy.validation.checks import (
     missing_required, duplicate_in_column, column_name_mismatch
@@ -21,7 +24,6 @@ def _get_selected_project(projects: List[Dict[str, Any]]) -> Optional[Dict[str, 
         if p["id"] == pid:
             return p
     return None
-
 
 def render_project(projects: List[Dict[str, Any]], save_and_refresh) -> None:
     p = _get_selected_project(projects)
@@ -332,19 +334,94 @@ def render_project(projects: List[Dict[str, Any]], save_and_refresh) -> None:
             save_and_refresh(projects)
 
     # ---- Export & Validate --------------------------------------------------
+    def _minimal_schema_for(df: pd.DataFrame, max_cols: int = 3) -> DataFrameSchema:
+        """Create a tiny schema from the first 2-3 columns"""
+        cols = [str(c) for c in list(df.columns)[:max_cols]]
+        if not cols:
+            raise ValueError("CSV has no columns to validate.")
+        schema_dict = {}
+        for i, c in enumerate(cols):
+            schema_dict[c] = Column(pa.String, coerce=True, nullable=(i != 0))
+        return DataFrameSchema(schema_dict)
+    
+    def _build_metadata(df: pd.DataFrame, filename: str) -> dict:
+        return {
+            "dataset_id": {"filename": filename},
+            "run_at": datetime.now(timezone.utc).isoformat().replace("+00.00","Z"),
+            "shape": {"n_rows": int(df.shape[0]), "n_cols": int(df.shape[1])},
+            "columns": [str(c) for c in list(df.columns)[:10]],
+        }
+    
     with tabs[6]:
         st.subheader("Export & Validate (prototype)")
-        if st.button("Generate placeholder export"):
-            export_record = {
-                "id": f"exp_{int(datetime.now(timezone.utc).timestamp())}",
-                "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00","Z"),
-                "summary": "Placeholder export generated (implement real exporters next)."
-            }
-            p["exports"].append(export_record)
-            update_project_timestamp(p)
-            save_and_refresh(projects)
-        if p["exports"]:
-            st.write(pd.DataFrame(p["exports"])[["id","created_at","summary"]])
+
+        #Read required project context
+        project_id = p.get("id")
+        if not project_id:
+            st.warning("No project selected. Go back to Home and pick a project.")
+            st.stop()
+
+        #Controls
+        dry_run = st.toggle("Dry-run (no files written)", value=True)
+        upload = st.file_uploader("Upload a CSV to validate", type=["csv"])
+
+        c1, c2 = st.columns([1, 1])
+        validate_btn = c1.button("Validate", type="primary", disabled=upload is None)
+        export_btn = c2.button("Export metadata.json", disabled=st.session_state.get("min_meta_ok") is not True)
+
+        # Status container
+        status = st.container()
+
+        # Validate
+        if validate_btn and upload is not None:
+            with status:
+                st.info("Validating...")
+            try:
+                df = pd.read_csv(upload)
+                schema = _minimal_schema_for(df)
+                schema.validate(df, lazy=True)
+                st.session_state["min_meta_ok"] = True
+                st.session_state["min_meta_df_cols"] = list(df.columns)
+                st.session_state["min_meta_filename"] = getattr(upload, "name", "uploaded.csv")
+                st.session_state["min_meta_payload"] = _build_metadata(df, st.session_state["min_meta_filename"])
+                status.success("Validation passed.")
+            except Exception as e:
+                msg = str(e)
+                if len(msg) > 600:
+                    msg = msg[:600] + "\n...(truncated)"
+                st.session_state["min_meta_ok"] = False
+                st.session_state["min_meta_payload"] = None
+                status.error(msg)
+                
+        # Export
+        if export_btn:
+            if st.session_state.get("min_meta_ok") is not True or not st.session_state.get("min_meta_payload"):
+                st.warning("Validate a CSV successfully before exporting.")
+            else:
+                out_dir = exports_dir(project_id)
+                out_path = Path(out_dir) / "metadata.json"
+                meta = st.session_state["min_meta_payload"]
+
+                if dry_run:
+                    st.info("Dry-run enabled: no file written.")
+                    with st.expander("Preview metadata.json (dry-run)"):
+                        st.code(json.dumps(meta, indent=2), language = "json")
+                else:
+                    out_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+                    export_record = {
+                        "id": f"exp_{int(datetime.now(timezone.utc).timestamp())}",
+                        "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "summary": f"metadata.json written to {out_path}",
+                    }
+                    p.setdefault("exports", []).append(export_record)
+                    update_project_timestamp(p)
+                    save_and_refresh(projects)
+
+                    st.success(f"Export complete: {out_path}")
+                    st.code(json.dumps(meta, indent=2), language="json")
+                
+        if p.get("exports"):
+            st.write(pd.DataFrame(p["exports"])[["id", "created_at", "summary"]])
 
     if st.sidebar.button("← Back to Home"):
         st.session_state.selected_project_id = None
