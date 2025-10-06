@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+exclude = '''
+/(
+  \.venv
+| \.git
+| __pycache__
+| \.fairy_data
+| exports
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = [".venv", ".fairy_data", "exports"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", ".fairy_data", "exports"]
+lint.select = ["E","F","I","B","UP"]   # basic flake8 + bugbear + pyupgrade + imports
+lint.ignore = ["E203","E266"]           # keep Black happy
