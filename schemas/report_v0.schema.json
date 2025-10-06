@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FAIRy Report v0",
+  "type": "object",
+  "required": ["version","run_at","dataset_id","summary","warnings","rulepacks","provenance"],
+  "properties": {
+    "version": { "const": "FAIRy-Report-v0" },
+    "run_at": { "type": "string", "format": "date-time" },
+    "dataset_id": {
+      "type": "object",
+      "required": ["filename","sha256"],
+      "properties": {
+        "filename": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["n_rows","n_cols","fields_validated"],
+      "properties": {
+        "n_rows": { "type": "integer", "minimum": 0 },
+        "n_cols": { "type": "integer", "minimum": 0 },
+        "fields_validated": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["column","check","failure","index"],
+        "properties": {
+          "column": { "type": "string" },
+          "check": { "type": "string" },
+          "failure": { "type": "string" },
+          "index": { "type": ["integer","string","null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rulepacks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["license","source_url","notes"],
+      "properties": {
+        "license": { "type": ["string","null"] },
+        "source_url": { "type": ["string","null"], "format": "uri" },
+        "notes": { "type": ["string","null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
