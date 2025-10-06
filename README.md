@@ -29,4 +29,3 @@ source .venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
-![CI](https://github.com/<your-username>/<your-repo>/actions/workflows/ci.yml/badge.svg)
