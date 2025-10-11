@@ -1,3 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fairy-skeleton"                # demo distribution name
+version = "0.1.0"
+description = "FAIRy demo environment (Streamlit + thin CLI) that will call fairy-core."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Jennifer Slotnick" }]
+license = { text = "MIT" }
+# Minimal runtime deps for the validator demo; adjust as you wire things up:
+dependencies = [
+  "pandas>=2.0",
+  "pandera>=0.18"
+]
+
+[project.optional-dependencies]
+ui = ["streamlit>=1.36"]               # later: `pip install .[ui]` for the demo UI
+
+[project.scripts]
+fairy-demo = "fairy.cli.run:main"  # <-- demo CLI (reserve `fairy` for the core package)
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fairy*"]              # our package is `fairy_demo` inside this repo
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]
