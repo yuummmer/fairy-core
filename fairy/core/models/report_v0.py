@@ -1,5 +1,15 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union, Any
+
+@dataclass
+class InputFile:
+    path: str
+    bytes: int
+
+@dataclass
+class Inputs:
+    project_dir: str
+    files: List[InputFile]
 
 @dataclass
 class DatasetId:
@@ -39,4 +49,6 @@ class ReportV0:
     warnings: List[WarningItem] = field(default_factory=list)
     rulepacks: List[Rulepack] = field(default_factory=list)
     provenance: Provenance = field(default_factory=Provenance)
+    inputs: Inputs = field(default_factory=lambda: Inputs(project_dir=".", files=[]))
+    checks: List[Dict[str,Any]] = field(default_factory=list)
     scores: Dict[str, float] = field(default_factory=lambda: {"preflight": 0.0})

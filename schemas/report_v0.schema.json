@@ -2,22 +2,26 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "FAIRy Report v0",
   "type": "object",
-  "required": ["version","run_at","dataset_id","summary","warnings","rulepacks","provenance"],
+  "required": ["version", "run_at", "dataset_id", "summary", "warnings", "rulepacks", "provenance", "inputs", "checks", "scores"],
+  "additionalProperties": false,
   "properties": {
-    "version": { "const": "FAIRy-Report-v0" },
+    "version": { "const": "0.1.0" },
     "run_at": { "type": "string", "format": "date-time" },
+
     "dataset_id": {
       "type": "object",
-      "required": ["filename","sha256"],
+      "required": ["filename", "sha256"],
+      "additionalProperties": false,
       "properties": {
         "filename": { "type": "string", "minLength": 1 },
         "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
-      },
-      "additionalProperties": false
+      }
     },
+
     "summary": {
       "type": "object",
-      "required": ["n_rows","n_cols","fields_validated"],
+      "required": ["n_rows", "n_cols", "fields_validated"],
+      "additionalProperties": false,
       "properties": {
         "n_rows": { "type": "integer", "minimum": 0 },
         "n_cols": { "type": "integer", "minimum": 0 },
@@ -25,37 +29,80 @@
           "type": "array",
           "items": { "type": "string" }
         }
-      },
-      "additionalProperties": false
+      }
     },
+
     "warnings": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["column","check","failure","index"],
+        "required": ["column", "check", "failure", "index"],
+        "additionalProperties": false,
         "properties": {
           "column": { "type": "string" },
           "check": { "type": "string" },
           "failure": { "type": "string" },
-          "index": { "type": ["integer","string","null"] }
-        },
-        "additionalProperties": false
+          "index": { "type": ["integer", "string", "null"] }
+        }
       }
     },
+
     "rulepacks": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "object",
+        "required": ["name", "version"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      }
     },
+
     "provenance": {
       "type": "object",
-      "required": ["license","source_url","notes"],
+      "additionalProperties": false,
+      "required": ["license", "source_url", "notes"],
       "properties": {
-        "license": { "type": ["string","null"] },
-        "source_url": { "type": ["string","null"], "format": "uri" },
-        "notes": { "type": ["string","null"] }
-      },
-      "additionalProperties": false
+        "license": { "type": ["string", "null"] },
+        "source_url": { "type": ["string", "null"], "format": "uri" },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+
+    "inputs": {
+      "type": "object",
+      "required": ["project_dir", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "project_dir": { "type": "string" },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "bytes"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string" },
+              "bytes": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+
+    "scores": {
+      "type": "object",
+      "additionalProperties": true
     }
-  },
-  "additionalProperties": false
+  }
 }

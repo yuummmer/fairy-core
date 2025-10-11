@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import json
+import json, jsonschema
+from dataclasses import asdict, is_dataclass
 from datetime import datetime, UTC
 from pathlib import Path
 from typing import List, Optional
@@ -17,6 +18,8 @@ from ..models.report_v0 import (
 )
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
+SCHEMA_PATH = Path("schemas/report_v0.schema.json")
+DEFAULT_OUT_DIR = Path("project_dir/out")
 
 
 def _now_utc_iso() -> str:
@@ -32,9 +35,26 @@ def _posix_rel(child: Path, root: Path) -> str:
         rel = child.resolve(strict=False)
     return rel.as_posix()
 
+def _to_dict(obj):
+    if is_dataclass(obj):
+        return asdict(obj)
+    if isinstance(obj, (list, tuple)):
+        return [ _to_dict(x) for x in obj]
+    if isinstance(obj, dict):
+        return { k: _to_dict(v) for k, v in obj.items() }
+    return obj
+
+def _warn_sort_key(w: WarningItem):
+    # Avoid TypeError when comparing None/int/str across items
+    col = getattr(w, "column", "") or ""
+    chk = getattr(w, "check", "") or ""
+    idx = getattr(w, "index", None)
+    # normalize index to string for deterministic ordering
+    idx_norm = "" if idx is None else str(idx)
+    return (col, idx_norm, chk)
 
 def write_report(
-    out_dir: str | Path,
+    out_dir: str | Path = DEFAULT_OUT_DIR,
     *,
     filename: str,
     sha256: str,
@@ -43,7 +63,7 @@ def write_report(
     provenance: Optional[dict] = None,
     input_path: str | Path | None = None,
 ) -> Path:
-    """Create project_dir/reports/report_v0.json (pretty, deterministic key order)."""
+    """Create project_dir/reports/report.json (pretty, deterministic key order)."""
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
@@ -83,15 +103,12 @@ def write_report(
         scores={"preflight": 0.0},
     )
 
-    path = out_path / "report_v0.json"
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(
-            report,
-            f,
-            default=lambda o: o.__dict__,
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        )
-        f.write("\n")
+    schema = json.loads(SCHEMA_PATH.read_text())
+    report_dict = _to_dict(report)
+    jsonschema.validate(instance=report_dict, schema=schema)
+
+    path = out_path / "report.json"
+    path.write_text(json.dumps(report_dict, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    
+    print(f"[FAIRy] Wrote {path.resolve()}")
     return path
