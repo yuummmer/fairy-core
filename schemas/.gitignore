@@ -1,0 +1,8 @@
+project_dir/out/
+project_dir/dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+.DS_Store
