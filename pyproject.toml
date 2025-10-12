@@ -16,6 +16,10 @@ dependencies = [
   "pandera>=0.18"
 ]
 
+[project.urls]
+Homepage = "https://github.com/yuummmer/metadata-wizard"
+Repository = "https://github.com/yuummmer/metadata-wizard"
+
 [project.optional-dependencies]
 ui = ["streamlit>=1.36"]               # later: `pip install .[ui]` for the demo UI
 
