@@ -70,3 +70,9 @@ Deterministic report.json writer validated by JSON Schema.
 Golden fixture test for bad.csv.
 
 (See GitHub issues for v0.2 items like bundles, manifests, ZIP export, and provenance.)
+
+## Attribution / Citation
+
+If you use FAIRy, please cite:
+FAIRy (v0.1, prototype). URL: https://github.com/yuummmer/metadata-wizard
+This project reuses open-source components credited in the repository’s LICENSE and NOTICE sections.
