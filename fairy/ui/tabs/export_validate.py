@@ -1,4 +1,3 @@
-# fairy/ui/tabs/export_validate.py
 from __future__ import annotations
 
 import json
