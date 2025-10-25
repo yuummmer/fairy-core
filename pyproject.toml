@@ -25,7 +25,8 @@ ui = ["streamlit>=1.36"]               # later: `pip install .[ui]` for the demo
 dev = ["pytest", "pandas", "pandera", "jsonschema"]
 
 [project.scripts]
-fairy-demo = "fairy.cli.run:main"  # <-- demo CLI (reserve `fairy` for the core package)
+fairy = "fairy.cli.run:main"
+fairy-demo = "fairy.cli.run:demo_alias_main"  # <-- demo CLI (reserve `fairy` for the core package)
 
 [tool.setuptools.packages.find]
 where = ["."]
