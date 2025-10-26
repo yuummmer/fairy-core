@@ -1,0 +1,105 @@
+{
+  "rulepack_id": "GEO-SEQ-BULK",
+  "rulepack_version": "0.1.0",
+  "repository": "GEO",
+  "assay_type": ["RNA-seq", "ATAC-seq", "ChIP-seq", "methyl-seq"],
+  "mode": "bulk",
+  "description": "Bulk (pooled) sequencing submissions to GEO. One row per biological sample; excludes single-cell and spatial.",
+  "rules": [
+    {
+      "code": "GEO.REQ.MISSING_FIELD",
+      "severity": "FAIL",
+      "where": "samples.tsv (library_strategy, molecule, instrument_model, sample_title, organism)",
+      "why": "GEO requires these fields for each sample.",
+      "how_to_fix": "Add the missing column(s); fill every row with allowed values.",
+      "check": {
+        "type": "require_columns",
+        "target_file": "samples.tsv",
+        "required_columns": [
+          "sample_title",
+          "organism",
+          "library_strategy",
+          "molecule",
+          "instrument_model"
+        ]
+      }
+    },
+    {
+      "code": "GEO.BIO.CONTEXT_MISSING",
+      "severity": "FAIL",
+      "where": "samples.tsv",
+      "why": "Each sample needs biological source info (tissue / cell_line / cell_type).",
+      "how_to_fix": "Provide at least one of tissue, cell_line, or cell_type for each row.",
+      "check": {
+        "type": "at_least_one_nonempty_per_row",
+        "target_file": "samples.tsv",
+        "column_groups": [
+          ["tissue", "cell_line", "cell_type"]
+        ]
+      }
+    },
+    {
+      "code": "CORE.ID.UNMATCHED_SAMPLE",
+      "severity": "FAIL",
+      "where": "samples.tsv ↔ files.tsv",
+      "why": "Every file must map to a described sample and vice versa.",
+      "how_to_fix": "Align sample_id sets across samples.tsv and files.tsv.",
+      "check": {
+        "type": "id_crosscheck",
+        "left_file": "samples.tsv",
+        "left_key": "sample_id",
+        "right_file": "files.tsv",
+        "right_key": "sample_id"
+      }
+    },
+    {
+      "code": "GEO.FILE.PAIRING_MISMATCH",
+      "severity": "FAIL",
+      "where": "files.tsv",
+      "why": "Paired-end libraries require both R1 and R2 per sample.",
+      "how_to_fix": "Provide both mates with matching sample_id; fix naming if mismatched.",
+      "check": {
+        "type": "paired_end_complete",
+        "target_file": "files.tsv",
+        "sample_key": "sample_id",
+        "layout_column": "layout",
+        "layout_value_for_paired": "PAIRED",
+        "file_column": "filename",
+        "r1_pattern": "_R1",
+        "r2_pattern": "_R2"
+      }
+    },
+    {
+      "code": "CORE.DATE.INVALID_ISO8601",
+      "severity": "WARN",
+      "where": "samples.tsv",
+      "why": "Ambiguous dates hurt reuse; curators may ask for fixes.",
+      "how_to_fix": "Use ISO8601 (YYYY-MM-DD).",
+      "check": {
+        "type": "dates_are_iso8601",
+        "target_file": "samples.tsv",
+        "columns": [
+          "collection_date",
+          "isolation_date"
+        ]
+      }
+    },
+    {
+      "code": "GEO.REQ.MISSING_PROCESSED_DATA",
+      "severity": "WARN",
+      "where": "files.tsv / processed outputs",
+      "why": "GEO expects processed, per-sample quantitative data, not only raw reads.",
+      "how_to_fix": "Include counts tables, peak files, or other processed data mapped to each sample_id.",
+      "check": {
+        "type": "processed_data_present",
+        "raw_file_glob": "*.fastq.gz",
+        "processed_glob_candidates": [
+          "*.counts.tsv",
+          "*.peaks.bed",
+          "*.bigWig"
+        ],
+        "sample_key": "sample_id"
+      }
+    }
+  ]
+}
