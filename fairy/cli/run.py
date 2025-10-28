@@ -6,7 +6,8 @@ import sys
 from pathlib import Path
 from hashlib import sha256
 from ..core.services.report_writer import write_report, _now_utc_iso
-from ..core.services.validator import validate_csv
+from ..core.services.validator import run_rulepack
+from ..core.validation_api import validate_csv
 from ..core.validators import generic, rna
 from typing import Optional
 
@@ -52,22 +53,25 @@ def _build_parser() -> argparse.ArgumentParser:
         description="FAIRy - validate a CSV/dataset locally and write a report.",
     )
     p.add_argument(
-        "--version", 
+        "--version",
         action="store_true",
-        help= "Print engine + rulepack version and exit.",
+        help="Print engine + rulepack version and exit.",
     )
 
     sub = p.add_subparsers(dest="command", metavar="<command>")
 
-    #validate
+    # validate
     v = sub.add_parser(
         "validate",
         help="Validate a CSV and emit a report.",
         description="Validate a CSV and emit JSON/Markdown reports.",
     )
-    v.add_argument("input", help="CSV file to validate (e.g., demos/PASS_minimal_rnaseq/metadata.csv)")
     v.add_argument(
-        "--out", 
+        "input",
+        help="CSV file to validate (e.g., demos/PASS_minimal_rnaseq/metadata.csv)",
+    )
+    v.add_argument(
+        "--out",
         default="project_dir/reports",
         help="Output directory if using legacy JSON writer (default: project_dir/reports).",
     )
@@ -75,7 +79,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--report-json",
         type=Path,
         default=None,
-        metavar="Path",
+        metavar="PATH",
         help="Write machine-readable JSON report to PATH (bypass legacy out-dir writer).",
     )
     v.add_argument(
@@ -95,6 +99,49 @@ def _build_parser() -> argparse.ArgumentParser:
         "--kind",
         default="rna",
         help="Schema kind: rna | generic | dna | ... (default:rna).",
+    )
+
+    # preflight
+    pf = sub.add_parser(
+        "preflight",
+        help="Run FAIRy rulepack on GEO-style TSVs and emit attestation + findings.",
+        description=(
+            "Pre-submission check for GEO bulk RNA-seq. "
+            "Reads samples.tsv and files.tsv, applies the rulepack, "
+            "and emits a FAIRy report with submission_ready."
+        ),
+    )
+    pf.add_argument(
+        "--rulepack",
+        type=Path,
+        required=True,
+        help="Path to rulepack JSON (e.g. fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json)",
+    )
+    pf.add_argument(
+        "--samples",
+        type=Path,
+        required=True,
+        help="Path to samples.tsv (tab-delimited sample metadata)",
+    )
+    pf.add_argument(
+        "--files",
+        type=Path,
+        required=True,
+        help="Path to files.tsv (tab-delimited file manifest)",
+    )
+    pf.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Write FAIRy attestation+findings JSON to this path (e.g. out/report.json)",
+    )
+    pf.add_argument(
+        "--fairy-version",
+        default=FAIRY_VERSION,
+        help=(
+            "Version string to embed in attestation.fairy_version "
+            "(default: current FAIRy version)"
+        ),
     )
 
     return p
@@ -159,11 +206,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    # top-level --version
-    if args.version and (args.command is None): 
+    # top-level --version (no subcommand)
+    if args.version and (args.command is None):
         print(_version_text(None))
         return 0
 
+    # 'validate' subcommand (existing behavior)
     if args.command == "validate":
         csv_path = _resolve_input_path(Path(args.input))
         payload, _ = _build_payload(csv_path, kind=getattr(args, "kind", "rna"))
@@ -173,22 +221,24 @@ def main(argv: list[str] | None = None) -> int:
         # new path: explicit file targets
         if args.report_json:
             args.report_json.parent.mkdir(parents=True, exist_ok=True)
-            # Use my JSON writer if it accepts a file path, otherwise dump payload directly
-            # the existing write_report writes to a directory, so here we dump directly
-            args.report_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+            # write JSON report directly to the requested file
+            args.report_json.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
             wrote_any = True
 
         if args.report_md:
             _emit_markdown(args.report_md, payload)
             wrote_any = True
 
-        #legacy path: existing directory-based writer
+        # legacy path: existing directory-based writer
         if not wrote_any:
             path = write_report(
                 out_dir=args.out,
                 filename=csv_path.name,
                 sha256=payload["dataset_id"]["sha256"],
-                meta = {
+                meta={
                     "n_rows": payload["summary"]["n_rows"],
                     "n_cols": payload["summary"]["n_cols"],
                     "fields_validated": payload["summary"]["fields_validated"],
@@ -198,10 +248,54 @@ def main(argv: list[str] | None = None) -> int:
                 provenance={"license": None, "source_url": None, "notes": None},
             )
             print(f"Wrote {path}")
-        
-        # Exit code: 0 for pass/warn, 1 for fail(adjust if status is added later)
-        # Currently payload has warnings but no overall status; treat warnings as non-fatal:
+
+        # 'validate' never fails build right now, even with warnings
         return 0
+
+    # 'preflight' subcommand (NEW: GEO-style submission check)
+    if args.command == "preflight":
+        # Run the high-level rulepack runner on samples.tsv/files.tsv
+        report = run_rulepack(
+            rulepack_path=args.rulepack.resolve(),
+            samples_path=args.samples.resolve(),
+            files_path=args.files.resolve(),
+            fairy_version=args.fairy_version,
+        )
+
+        # Write machine-readable FAIRy report (attestation + findings)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        att = report["attestation"]
+
+        # Pretty console summary for humans / screenshots / CI logs
+        print("")
+        print("=== FAIRy Preflight ===")
+        print(f"Rulepack:         {att['rulepack_id']}@{att['rulepack_version']}")
+        print(f"FAIRy version:    {att['fairy_version']}")
+        print(f"Run at (UTC):     {att['run_at_utc']}")
+        print(f"FAIL findings:    {att['fail_count']}")
+        print(f"WARN findings:    {att['warn_count']}")
+        print(f"submission_ready: {att['submission_ready']}")
+        print(f"Report JSON:      {args.out}")
+        print("")
+
+        if report["findings"]:
+            f0 = report["findings"][0]
+            print("Example finding:")
+            print(f"  [{f0['severity']}] {f0['code']} @ {f0['where']}")
+            print(f"    why: {f0['why']}")
+            print(f"    fix: {f0['how_to_fix']}")
+            print("")
+
+        # Exit code for automation / CI:
+        # - submission_ready == False (at least one FAIL) -> exit 1
+        # - otherwise 0
+        exit_code = 0 if att["submission_ready"] else 1
+        return exit_code
 
     # no command -> help
     parser.print_help()
