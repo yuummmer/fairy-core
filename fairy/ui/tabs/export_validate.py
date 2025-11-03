@@ -12,9 +12,10 @@ from fairy.ui.shared.context import ProjectCtx
 from fairy.core.storage import update_project_timestamp
 from fairy.core.services.validator import run_rulepack
 
-# this import is from your current code
 from fairy.validation.process_csv import process_csv
 from fairy.core.services.report_writer import write_report
+
+from fairy.core.services.export_adapter import export_submission, ExportResult
 
 FAIRY_VERSION = "0.1.0"
 
@@ -165,6 +166,11 @@ def _render_rnaseq_preflight(ctx: ProjectCtx) -> None:
                         "report": report,
                         "samples_preview": samples_df.head(20),
                         "files_preview": files_df.head(20),
+                    
+                        # keep temp file paths so Export can reuse exactly what was validated
+                        "tmp_samples_path": str(tmp_samples_path),
+                        "tmp_files_path": str(tmp_files_path),
+                        "rulepack_path": str(rulepack_path),
                     }
 
                     # also append to project history right now
@@ -253,6 +259,54 @@ def _render_rnaseq_preflight(ctx: ProjectCtx) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+    # --- Export ZIP (enabled only if submission-ready) ---
+    export_disabled = not att["submission_ready"]
+    st.markdown("#### Export")
+    if export_disabled:
+        st.info("Export is enabled when the dataset is submission-ready (no FAIL findings).")
+    
+    col_e1, col_e2 = st.columns([1,3])
+    with col_e1:
+        do_export = st.button("Export ZIP", type="primary", disabled=export_disabled, key="pre_export_zip")
+    with col_e2:
+        st.caption("Creates a ZIP with manifest, provenance, and FAIRy report.")
+
+    if do_export:
+        tmp_samples_path = latest.get("tmp_samples_path")
+        tmp_files_path = latest.get("tmp_files_path")
+        rulepack_path = latest.get("rulepack_path")
+
+        if not (tmp_samples_path and tmp_files_path and rulepack_path):
+            st.error("We couldn't find the validated file paths. Please run Preflight again.")
+        else:
+            try:
+                with st.spinner("Building export..."):
+                    res: ExportResult = export_submission(
+                        project_dir =ctx.proj_root,
+                        rulepack=Path(rulepack_path),
+                        samples=Path(tmp_samples_path),
+                        files=Path(tmp_files_path),
+                    )
+
+                st.success("Export complete.")
+                st.write(f"**Export dir:** `{res.export_dir}`")
+
+                with open(res.zip_path, "rb") as f:
+                    st.download_button(
+                        "Download bundle.zip",
+                        data=f,
+                        file_name="bundle.zip",
+                        mime="application/zip",
+                        key="dl_bundle_zip",
+                    )
+                st.markdown(f"- Manifest: `{res.manifest_path}`")
+                st.markdown(f"- Provenance: `{res.provenance_path}`")
+                st.markdown(f"- Report (JSON): `{res.report_path}`")
+                st.markdown(f"- Report(Markdown): `{res.report_md_path}`")
+            except Exception as e:
+                st.error("Export failed.")
+                st.code(str(e))
 
     # 2. Preview inputs
     st.markdown("#### Preview (first 20 rows)")
