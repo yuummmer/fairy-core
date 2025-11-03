@@ -201,6 +201,161 @@ def _resolve_input_path(p: Path) -> Path:
         )
     raise FileNotFoundError(f"{p} is not a file or directory")
 
+def _load_last_codes(cache_path: Path) -> set[str] | None:
+    """
+    Read previously saved finding codes from last run.
+    Returns a set of codes (e.g. {"CORE.ID.UNMATCHED_SAMPLE", ...})
+    or None if no cache yet.
+    """
+
+    if not cache_path.exists():
+        return None
+    try:
+        raw = json.loads(cache_path.read_text(encoding="utf-8"))
+        # Expecting {"codes": ["AAA", "BBB", ...]}
+        codes_list = raw.get("codes", [])
+        # Defensive cast to set[str]
+        return set(str(c) for c in codes_list)
+    except Exception:
+        # If cache is corrupt, just ignore it this run
+        return None
+    
+def _save_last_codes(cache_path: Path, codes: set[str]) -> None:
+    """
+    Persist finding codes for next run's diff.
+    Overwrites each run
+    """
+    payload = {"codes": sorted(codes)}
+    cache_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+def _emit_preflight_markdown(
+        md_path: Path,
+        att: dict,
+        report: dict,
+        resolved_codes: list[str],
+        prior_codes: set[str] | None,
+) -> None:
+    """
+    Write a curator-facing one-pager in Markdown that mirrors the CLI output.
+    """
+
+    inputs = att.get("inputs", {})
+    samples_info = inputs.get("samples", {})
+    files_info = inputs.get("files" ,{})
+
+    def _fmt_input_block(label: str, meta: dict) -> list[str]:
+        if not meta:
+            return[f"### {label}", "", "_no input metadata_", ""]
+        return [
+            f"### {label}",
+            "",
+            f"- path: '{meta.get('path', '?')}'",
+            f"- sha256: '{meta.get('sha256', '?')}'",
+            f"- rows: '{meta.get('n_rows', '?')}'",
+            f"- cols: '{meta.get('n_cols', '?')}'",
+            ""
+        ]
+    
+    # summarize active codes
+    fail_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "FAIL"})
+    warn_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "WARN"})
+
+    # Build findings table rows
+    # One row per finding, so curator can see all issues
+    table_lines = [
+        "| Severity | Code | Location | Why it matters | How to fix |",
+        "|----------|------|----------|----------------|------------|",
+    ]
+    for f in report["findings"]:
+        sev = f.get("severity", "?")
+        code = f.get("code", "?")
+        where = f.get("where", "").replace("|", r"\|")
+        why = f.get("why", "").replace("|", r"\|")
+        fix = f.get("how_to_fix", "").replace("|", r"\|")
+        table_lines.append(
+            f"| {sev} | {code} | {where} | {why} | {fix} |"
+        )
+
+    # Resolved since last run block
+    if prior_codes is None:
+        resolved_block = [
+            "_No baseline from prior run (first run or cache missing)._"
+        ]
+    elif not resolved_codes:
+        resolved_block = [
+            "_No previously-reported issues resolved._"
+        ]
+    else:
+        resolved_block = [f" -✅ {code}" for code in resolved_codes]
+    
+    # Compose markdown doc
+    lines: list[str] = []
+
+    # Title / high-level summary
+    lines += [
+        "# FAIRy Preflight Report",
+         "",
+        f"- **Rulepack:** {att['rulepack_id']}@{att['rulepack_version']}",
+        f"- **FAIRy version:** {att['fairy_version']}",
+        f"- **Run at (UTC):** {att['run_at_utc']}",
+        f"- **submission_ready:** `{att['submission_ready']}`",
+        "",
+        "## Summary",
+        "",
+        f"- FAIL findings: {att['fail_count']} {fail_codes}",
+        f"- WARN findings: {att['warn_count']} {warn_codes}",
+        "",
+        "If `submission_ready` is `True`, FAIRy believes this dataset is ready to submit.",
+        "",
+        "---",
+        "",
+        "## Input provenance",
+        "",
+        "These hashes and dimensions identify the exact files that FAIRy validated.",
+        "You can hand this block to a curator or PI as evidence of what was checked.",
+        "",
+    ]
+
+    lines += _fmt_input_block("samples.tsv", samples_info)
+    lines += _fmt_input_block("files.tsv", files_info)
+
+    lines += [
+        "---",
+        "",
+        "## Findings (all current issues)",
+        "",
+        "Severity `FAIL` means “must fix before submission.”",
+        "Severity `WARN` means “soft violation / likely curator feedback.”",
+        "",
+    ]
+
+    # only include table if there are findings
+    if report["findings"]:
+        lines += table_lines
+        lines += [""] # newline after table
+    else:
+        lines += [
+            "_No findings._",
+            "",
+        ]
+
+    lines += [
+        "---",
+        "",
+        "## Resolved since last run",
+        "",
+    ]
+    if resolved_block:
+        lines += resolved_block
+    lines += [""]
+
+    # Write file
+    md_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     parser = _build_parser()
@@ -271,17 +426,71 @@ def main(argv: list[str] | None = None) -> int:
 
         att = report["attestation"]
 
-        # Pretty console summary for humans / screenshots / CI logs
+        # where we cache last-run codes
+        cache_path = args.out.parent / ".fairy_last_run.json"
+
+        # Build set of current codes
+        curr_codes = {f["code"] for f in report ["findings"]}
+
+        # Load previous run's codes (if any)
+        prior_codes = _load_last_codes(cache_path)
+
+        # Compute "resolved" = codes that used to exist but are gone now
+        resolved_codes: list[str] = []
+        if prior_codes is not None:
+            resolved_codes = sorted(prior_codes - curr_codes)
+
+        # Save current codes for next run
+        _save_last_codes(cache_path, curr_codes)
+
+        md_path = args.out.with_suffix(".md")
+        _emit_preflight_markdown(
+            md_path=md_path,
+            att=att,
+            report=report,
+            resolved_codes=resolved_codes,
+            prior_codes=prior_codes,
+        )
+
+        #=== Pretty console summary for humans / screenshots / CI logs
         print("")
         print("=== FAIRy Preflight ===")
         print(f"Rulepack:         {att['rulepack_id']}@{att['rulepack_version']}")
         print(f"FAIRy version:    {att['fairy_version']}")
         print(f"Run at (UTC):     {att['run_at_utc']}")
-        print(f"FAIL findings:    {att['fail_count']}")
-        print(f"WARN findings:    {att['warn_count']}")
+
+        fail_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "FAIL"})
+        warn_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "WARN"})
+
+        print(f"FAIL findings:    {att['fail_count']} {fail_codes}")
+        print(f"WARN findings:    {att['warn_count']} {warn_codes}")
+
         print(f"submission_ready: {att['submission_ready']}")
         print(f"Report JSON:      {args.out}")
         print("")
+
+        # show file provenance for trust / auditability
+        inputs = att.get("inputs", {})
+        samples_info = inputs.get("samples", {})
+        files_info = inputs.get("files", {})
+
+        def _fmt_file_info(label: str, meta:dict) -> str:
+            if not meta:
+                return f"{label}: (no input metadata)"
+            sha = meta.get("sha256", "?")
+            rows = meta.get("n_rows", "?")
+            cols = meta.get("n_cols", "?")
+            path = meta.get("path", "?")
+            return (
+                f"{label} sha256: {sha}\n"
+                f"  path: {path}\n"
+                f"  rows:{rows} cols:{cols}"
+            )    
+
+        print("Input provenance:")
+        print(_fmt_file_info("samples.tsv", samples_info))
+        print(_fmt_file_info("files.tsv", files_info))
+        print("")                        
 
         if report["findings"]:
             f0 = report["findings"][0]
@@ -290,6 +499,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"    why: {f0['why']}")
             print(f"    fix: {f0['how_to_fix']}")
             print("")
+
+        #Print resolved diff block
+        print("Resolved since last run:")
+        if prior_codes is None:
+            # first run or cache missing/corrupt
+            print("  (no baseline from prior run)")
+        elif not resolved_codes:
+            print("  (no previously-reported issues resolved)")
+        else:
+            for code in resolved_codes:
+                print(f"  ✔ {code}")
+        print("")
 
         # Exit code for automation / CI:
         # - submission_ready == False (at least one FAIL) -> exit 1

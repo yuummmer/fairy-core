@@ -1,19 +1,25 @@
 name: "GEO RNA-seq (minimal)"
 version: "v0"
-about: "Starter list of fields commonly required for GEO RNA-seq submissions. No validation yet."
+about: "Starter list of fields commonly required for GEO RNA-seq submissions. This is an early draft profile, not full validation."
+
 required:
   sample:
-    - sample_id
-    - organism
-    - tissue
-    - condition
+    - sample_id          # unique ID for each biological sample
+    - organism           # e.g. Homo sapiens, Arabidopsis thaliana
+    - tissue             # e.g. liver, leaf, root; or cell_line / cell_type
+    - condition          # experimental condition / treatment label
+
   experiment:
-    - library_strategy
-    - library_layout
-    - instrument_model
-    - read_length
-    - strandedness
+    - library_strategy   # e.g. RNA-Seq
+    - library_layout     # single-end / paired-end
+    - instrument_model   # e.g. Illumina NovaSeq
+    - read_length        # number of bases per read
+    - strandedness       # stranded / unstranded
+
   run:
-    - files[]   # at least one data file reference
+    - files[]            # at least one data file reference for each run
+
 notes:
-  - "This is a store-only stub. Real JSON Schema will replace this in a later story."
+  - "Intended as an internal stub. FAIRy will turn this into an actual rulepack profile (e.g. --profile geo, --profile ena, --profile ncbi)."
+  - "Real field-level validation (max length, allowed characters, etc.) is handled in schema.md and per-field rules."
+  - "In future, this profile will export to repository-specific submission formats."

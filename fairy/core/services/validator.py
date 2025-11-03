@@ -18,6 +18,7 @@ from pathlib import Path
 import json
 from typing import List, Dict, Any
 import pandas as pd
+from hashlib import sha256
 
 # pull shared types/utilities
 from ..validation_api import (
@@ -32,7 +33,7 @@ from ..validation_api import (
 from ..validators import rna  # to call check_* helpers
 
 
-# --- NEW: bridge function so legacy code (process_csv) still works ---
+# ---  bridge function so legacy code (process_csv) still works ---
 def validate_csv(path: str, kind: str = "rna"):
     """
     Thin wrapper that delegates to core.validation_api.validate_csv.
@@ -61,6 +62,75 @@ def _where_from_issue(issue: WarningItem, fallback_where: str) -> str:
         return ", ".join(bits)
     return fallback_where
 
+# === provenance helpers
+
+def _sha256_file(p: Path) -> str:
+    """
+    Return sha256 hex digest of file at path p.
+    Chunked so we don't load huge files fully into memory.
+    """
+
+    h = sha256()
+    with p.open("rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+def _summarize_tabular(p: Path) -> Dict[str, Any]:
+    """
+    Collect provenance for a TSV/CSV-like metadata file:
+    -path (as string)
+    -sha256
+    -n_rows (data rows, not counting header)
+    -n_cols
+    -header (list[str])
+
+    Will *try* to use Frictionless if available for more robust parsing.
+    If that fails or isn't installed, we fall back to simple TSV splitter.
+    """
+    path_str = str(p)
+    file_hash = _sha256_file(p)
+
+    header: List[str] = []
+    n_cols = 0
+    n_rows = 0
+
+    #Try Frictionless first
+    try:
+        from frictionless import Resource # type: ignore
+        resource = Resource(path_str)
+
+        # header list
+        header = list(resource.header or [])
+        n_cols = len(header)
+
+        # Count rows via frictionless read_rows() (each is a dict-like row of data)
+        data_rows = resource.read_rows()
+        n_rows = len(data_rows)
+
+    except Exception:
+        # Fallback: naive TSV parse
+        with p.open("r", encoding="utf-8") as f:
+            lines = f.read().splitlines()
+
+        if lines:
+            header_line = lines [0]
+            header = header_line.split("\t")
+            n_cols = len(header)
+            # everything after header is data rows
+            n_rows = max(len(lines) - 1, 0)
+        else:
+            header = []
+            n_cols = 0
+            n_rows = 0
+
+    return {
+        "path": path_str,
+        "sha256": file_hash,
+        "n_rows": n_rows,
+        "n_cols": n_cols,
+        "header": header,
+    }
 
 def run_rulepack(
     rulepack_path: Path,
@@ -153,6 +223,10 @@ def run_rulepack(
     fail_count = sum(1 for f in all_findings if f["severity"] == "FAIL")
     warn_count = sum(1 for f in all_findings if f["severity"] == "WARN")
 
+    # Capture provenance / trust info for each input sheet
+    samples_meta = _summarize_tabular(Path(samples_path))
+    files_meta = _summarize_tabular(Path(files_path))
+
     attestation = {
         "rulepack_id": pack.get("rulepack_id", "UNKNOWN_RULEPACK"),
         "rulepack_version": pack.get("rulepack_version", "0.0.0"),
@@ -161,6 +235,11 @@ def run_rulepack(
         "submission_ready": (fail_count == 0),
         "fail_count": fail_count,
         "warn_count": warn_count,
+
+        "inputs": {
+            "samples": samples_meta,
+            "files": files_meta,
+        }
     }
 
     report = {
