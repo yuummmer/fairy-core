@@ -430,7 +430,7 @@ def main(argv: list[str] | None = None) -> int:
         cache_path = args.out.parent / ".fairy_last_run.json"
 
         # Build set of current codes
-        curr_codes = {f["code"] for f in report ["findings"]}
+        curr_codes = {f["code"] for f in report["findings"]}
 
         # Load previous run's codes (if any)
         prior_codes = _load_last_codes(cache_path)
@@ -443,6 +443,7 @@ def main(argv: list[str] | None = None) -> int:
         # Save current codes for next run
         _save_last_codes(cache_path, curr_codes)
 
+        # Emit curator-facing Markdown one-pager
         md_path = args.out.with_suffix(".md")
         _emit_preflight_markdown(
             md_path=md_path,
