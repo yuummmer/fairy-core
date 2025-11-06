@@ -1,36 +1,30 @@
-# Python
+# venvs & editors
 .venv/
+.env
+*.code-workspace
+.vscode/
+.idea/
+
+# Python artifacts
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.so
 *.egg-info/
-dist/
-build/
+.dist-info/
+.build/
 .pytest_cache/
 .mypy_cache/
-.coverage
+coverage.xml
+htmlcov/
+.coverage*
+.cache/
 
-# Project
-.out/
-exports/
-.tmp/
+# OS cruft
 .DS_Store
-.idea/
-.vscode/
+Thumbs.db
 
-out/
-
-# Local environments & caches
-.venv/
-.pytest_cache/
-__pycache__/
-
-# Build/packaging
-*.egg-info/
-dist/
-build/
-
-# FAIRy run artifacts
-.out/
-out/
-exports/
-.tmp/
+# FAIRy outputs / caches
+tests/golden/.fairy_last_run.json
+reports/
