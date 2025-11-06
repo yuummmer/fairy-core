@@ -27,9 +27,9 @@ dev = ["pytest", "ruff", "mypy", "build", "twine"]
 fairy = "fairy.cli.run:main"
 
 [project.urls]
-Homepage = "https://github.com/<you>/fairy-core"
-Repository = "https://github.com/<you>/fairy-core"
-Issues = "https://github.com/<you>/fairy-core/issues"
+Homepage = "https://github.com/yuummmer/fairy-core"
+Repository = "https://github.com/yuummmer/fairy-core"
+Issues = "https://github.com/yuummmer/fairy-core/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

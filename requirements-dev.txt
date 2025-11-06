@@ -1,4 +1,8 @@
-pytest
-pytest-cov
-freezegun
-hypothesis
+# requirements-dev.txt
+pytest>=8.3
+pytest-cov>=5.0
+freezegun>=1.5
+hypothesis>=6.112
+black>=24.8
+ruff>=0.6
+pre-commit>=4.0
