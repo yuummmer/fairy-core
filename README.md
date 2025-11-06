@@ -16,6 +16,38 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 - 🚧 Early alpha; interfaces may change prior to v1.0
 
 ---
+## 🌱 What is FAIRy?
+
+- **Local-first**: All processing is on your machine. Your raw and fixed data never leave without your consent.
+- **Flexible & Open**: Core validation engine, repository rule templates, and CLI are 100% open and community-driven.
+- **Extensible**: Easily add new repository templates or contribute improved schemas/rules — keep up with the latest standards.
+- **Practical**: Audit and fix real researcher pain points (dates, IDs, vocab, file names), export clean packages, avoid resubmission headaches.
+
+---
+
+## ⚙️ How Does It Work?
+
+1. Create a new project workspace (all local).
+2. Upload your dataset (CSV, TSV, FASTQ, Excel, JSON, etc.).
+3. Choose your submission target(s): GEO, SRA, Zenodo, etc.
+4. Validate & audit: FAIRy shows you errors, warnings, and actionable fixes.
+5. Apply guided fixes on a working copy, or review/patch manually if preferred.
+6. Export a submission-ready package for your target repository — no surprises, no guessing.
+7. All fix history, audit logs, and provenance are saved in your local project.
+
+---
+
+## 🚀 Why Use FAIRy?
+
+- No more “submission rejected, fix and resubmit” cycles.
+- Safe for sensitive data: nothing sent to the cloud unless you choose.
+- No lock-in: Integrate with your existing analysis notebooks/lab systems.
+- Community-driven templates: transparent, up-to-date, and user-hackable.
+- **For researchers**: Grad students, postdocs, and lab managers can save hours per submission.
+
+> 👉 **Institutions and labs interested in pilots or dashboards — we’d love to hear from you.**
+> Email **hello@datadabra.com** or open an issue with the label `pilot-inquiry`.
+---
 
 ## Quickstart (90 seconds)
 
