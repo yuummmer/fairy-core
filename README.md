@@ -4,6 +4,11 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](#)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](.pre-commit-config.yaml)
 
+## 📸 Quick look
+
+**Preflight (CLI)**
+![FAIRy CLI preflight showing FAIL finding and submission_ready False](docs/assets/preflight_cli_before.png)
+
 # ✨ FAIRy Core ✨
 
 Local-first validator and packager for FAIR-compliant research datasets.
@@ -73,9 +78,9 @@ jq '.attestation.submission_ready, (.findings | length)' out/report.json
 ---
 ## What you get
 
-out/report.json — structured findings + attestation (includes dataset hashes, timing, FAIRy version)
+- out/report.json — structured findings + attestation (includes dataset hashes, timing, FAIRy version)
 
-(optional) report.md — friendly summary (see “Export bundle” below to generate it)
+- (optional) report.md — friendly summary (see “Export bundle” below to generate it)
 ---
 
 ## Export bundle (optional, one call)
@@ -123,14 +128,14 @@ schemas/                # JSON Schemas for reports, etc.
 
 Third-party attributions: see THIRD_PARTY_LICENSES.md
 
-*Commercial licensing is available. See COMMERCIAL.md or contact hello@datadabra.com*
+>Commercial licensing is available. See COMMERCIAL.md or contact hello@datadabra.com
 
 ---
 
 ## Developer notes
 - Source files use SPDX headers (pre-commit will add them if missing):
-# SPDX-License-Identifier: AGPL-3.0-only
-# Copyright (c) 2025 Jennifer Slotnick
+### SPDX-License-Identifier: AGPL-3.0-only
+### Copyright (c) 2025 Jennifer Slotnick
 - We package rulepacks as package data:
 ```toml
 [tool.setuptools.package-data]
