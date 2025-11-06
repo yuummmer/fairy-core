@@ -3,56 +3,46 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fairy-skeleton"                # demo distribution name
+name = "fairy-core"
 version = "0.1.0"
-description = "FAIRy demo environment (Streamlit + thin CLI) that will call fairy-core."
+description = "FAIRy — local-first, rules-based validator/fixer for research datasets"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Jennifer Slotnick" }]
-license = { text = "MIT" }
-# Minimal runtime deps for the validator demo; adjust as you wire things up:
+license = { text = "AGPL-3.0-only" }
 dependencies = [
-  "pandas>=2.0",
-  "pandera>=0.18"
+  "pandas>=2.1",
+  "pyyaml>=6.0",
+  "python-dateutil>=2.8"
 ]
 
-[project.urls]
-Homepage = "https://github.com/yuummmer/metadata-wizard"
-Repository = "https://github.com/yuummmer/metadata-wizard"
-
+# Optional extras you can add later:
 [project.optional-dependencies]
-ui = ["streamlit>=1.36"]               # later: `pip install .[ui]` for the demo UI
-dev = ["pytest", "pandas", "pandera", "jsonschema"]
+dev = ["pytest", "ruff", "mypy", "build", "twine"]
+# frictionless = ["frictionless>=5.16"]  # uncomment when you add the adapter
+# ui lives elsewhere; don't include Streamlit here
 
 [project.scripts]
-fairy = "fairy.cli.run:main"
-fairy-demo = "fairy.cli.run:demo_alias_main"  # <-- demo CLI (reserve `fairy` for the core package)
+fairy = "fairy.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/<you>/fairy-core"
+Repository = "https://github.com/<you>/fairy-core"
+Issues = "https://github.com/<you>/fairy-core/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["fairy*"]              # our package is `fairy_demo` inside this repo
+where = ["src"]
 
-[tool.black]
+# (optional) tooling configs; keep minimal in core
+[tool.ruff]
 line-length = 100
-target-version = ["py312"]
-exclude = '''
-/(
-  \.venv
-| \.git
-| __pycache__
-| \.fairy_data
-| exports
-)/
-'''
+target-version = "py310"
+lint.select = ["E","F","I","B","UP"]
+lint.ignore = ["E203","E266"]
 
 [tool.isort]
 profile = "black"
 line_length = 100
-skip = [".venv", ".fairy_data", "exports"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-extend-exclude = [".venv", ".fairy_data", "exports"]
-lint.select = ["E","F","I","B","UP"]   # basic flake8 + bugbear + pyupgrade + imports
-lint.ignore = ["E203","E266"]           # keep Black happy
