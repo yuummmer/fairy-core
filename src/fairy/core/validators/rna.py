@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+
 import re
 from typing import List, Dict, Set
 import pandas as pd

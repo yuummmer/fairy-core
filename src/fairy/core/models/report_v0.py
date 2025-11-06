@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Union, Any
 

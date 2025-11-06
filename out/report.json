@@ -1,0 +1,72 @@
+{
+  "attestation": {
+    "rulepack_id": "GEO-SEQ-BULK",
+    "rulepack_version": "0.1.0",
+    "fairy_version": "0.1.0",
+    "run_at_utc": "2025-11-06T01:05:34.334377+00:00",
+    "submission_ready": false,
+    "fail_count": 1,
+    "warn_count": 1,
+    "inputs": {
+      "samples": {
+        "path": "/home/jenni/projects/fairy-skeleton/scratch_run1/samples.tsv",
+        "sha256": "f965407ccaac8ee80953c634b7ad47a4c7441945dfebb8b5dabdb6657ed37165",
+        "n_rows": 2,
+        "n_cols": 10,
+        "header": [
+          "sample_id",
+          "sample_title",
+          "organism",
+          "library_strategy",
+          "molecule",
+          "instrument_model",
+          "tissue",
+          "cell_line",
+          "cell_type",
+          "collection_date"
+        ]
+      },
+      "files": {
+        "path": "/home/jenni/projects/fairy-skeleton/scratch_run1/files.tsv",
+        "sha256": "8ec6eaeb72ce5d853b76876da578dc251d392176a9384544a8eaf6433964d9fe",
+        "n_rows": 3,
+        "n_cols": 3,
+        "header": [
+          "sample_id",
+          "layout",
+          "filename"
+        ]
+      }
+    }
+  },
+  "findings": [
+    {
+      "code": "CORE.ID.UNMATCHED_SAMPLE",
+      "severity": "FAIL",
+      "where": "row 2, column 'sample_id'",
+      "why": "Every file must map to a described sample and vice versa.",
+      "how_to_fix": "Align sample_id sets across samples.tsv and files.tsv.",
+      "details": {
+        "kind": "file_unknown_sample_id",
+        "message": "File references sample_id 'S999' not found in samples.tsv.",
+        "hint": "Fix sample_id or add that sample to samples.tsv.",
+        "row": 2,
+        "column": "sample_id"
+      }
+    },
+    {
+      "code": "CORE.DATE.INVALID_ISO8601",
+      "severity": "WARN",
+      "where": "row 0, column 'collection_date'",
+      "why": "Ambiguous dates hurt reuse; curators may ask for fixes.",
+      "how_to_fix": "Use ISO8601 (YYYY-MM-DD).",
+      "details": {
+        "kind": "invalid_iso8601_date",
+        "message": "Value '10/3/25' in collection_date is not ISO8601 (YYYY-MM-DD).",
+        "hint": "Use format YYYY-MM-DD, e.g. 2025-10-02.",
+        "row": 0,
+        "column": "collection_date"
+      }
+    }
+  ]
+}

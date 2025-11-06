@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+
 import pandas as pd
 from pathlib import Path
 from hashlib import sha256

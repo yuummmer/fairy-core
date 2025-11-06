@@ -1,0 +1,2 @@
+[console_scripts]
+fairy = fairy.cli.run:main

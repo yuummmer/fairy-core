@@ -1,0 +1,11 @@
+pandas>=2.1
+pyyaml>=6.0
+python-dateutil>=2.8
+jsonschema>=4.0
+
+[dev]
+pytest
+ruff
+mypy
+build
+twine

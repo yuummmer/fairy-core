@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+
 # fairy/validation/types.py
 from __future__ import annotations
 from dataclasses import dataclass

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+
 from __future__ import annotations
 
 STATUS_EMOJI = {"pending": "⏳", "valid": "🟢", "warn": "🟡", "fail": "🔴"}

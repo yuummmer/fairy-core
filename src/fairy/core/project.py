@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+
 from __future__ import annotations
 from typing import Dict, Any
 from datetime import datetime, timezone

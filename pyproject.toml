@@ -13,7 +13,8 @@ license = { text = "AGPL-3.0-only" }
 dependencies = [
   "pandas>=2.1",
   "pyyaml>=6.0",
-  "python-dateutil>=2.8"
+  "python-dateutil>=2.8",
+  "jsonschema>=4.0"
 ]
 
 # Optional extras you can add later:
@@ -23,7 +24,7 @@ dev = ["pytest", "ruff", "mypy", "build", "twine"]
 # ui lives elsewhere; don't include Streamlit here
 
 [project.scripts]
-fairy = "fairy.cli:main"
+fairy = "fairy.cli.run:main"
 
 [project.urls]
 Homepage = "https://github.com/<you>/fairy-core"
@@ -35,6 +36,9 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+fairy = ["rulepacks/**/*.json", "rulepacks/**/*.yaml", "rulepacks/**/*.yml"]
 
 # (optional) tooling configs; keep minimal in core
 [tool.ruff]

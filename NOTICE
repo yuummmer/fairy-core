@@ -1,2 +1,12 @@
-FAIRy Core © 2025 Jennifer Slotnick.
-This product includes third-party software; see THIRD_PARTY_LICENSES.md.
+FAIRy Core
+Copyright © 2025 Jennifer Slotnick
+
+This project includes third-party software.
+See THIRD_PARTY_LICENSES.md for attributions and license texts.
+
+Portions of this repository may use different licenses:
+- Core source code (src/fairy/**): AGPL-3.0-only
+- Rulepacks (src/fairy/rulepacks/**): CC0-1.0 (public domain dedication)
+- Samples/fixtures (if present): CC BY-4.0
+
+“FAIRy” is a Datadabra project name. No trademark rights are granted by this notice.
