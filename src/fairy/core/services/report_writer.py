@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import json, jsonschema
+import json
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
+
+import jsonschema
 
 from ..models.report_v0 import (
     DatasetId,
@@ -38,14 +39,16 @@ def _posix_rel(child: Path, root: Path) -> str:
         rel = child.resolve(strict=False)
     return rel.as_posix()
 
+
 def _to_dict(obj):
     if is_dataclass(obj):
         return asdict(obj)
-    if isinstance(obj, (list, tuple)):
-        return [ _to_dict(x) for x in obj]
+    if isinstance(obj, (list, tuple)):  # noqa: UP038
+        return [_to_dict(x) for x in obj]
     if isinstance(obj, dict):
-        return { k: _to_dict(v) for k, v in obj.items() }
+        return {k: _to_dict(v) for k, v in obj.items()}
     return obj
+
 
 def _warn_sort_key(w: WarningItem):
     # Avoid TypeError when comparing None/int/str across items
@@ -56,14 +59,15 @@ def _warn_sort_key(w: WarningItem):
     idx_norm = "" if idx is None else str(idx)
     return (col, idx_norm, chk)
 
+
 def write_report(
     out_dir: str | Path = DEFAULT_OUT_DIR,
     *,
     filename: str,
     sha256: str,
     meta: dict,  # expects: n_rows, n_cols, fields_validated, warnings[]
-    rulepacks: Optional[List[dict]] = None,
-    provenance: Optional[dict] = None,
+    rulepacks: list[dict] | None = None,
+    provenance: dict | None = None,
     input_path: str | Path | None = None,
 ) -> Path:
     """Create project_dir/reports/report.json (pretty, deterministic key order)."""
@@ -111,7 +115,10 @@ def write_report(
     jsonschema.validate(instance=report_dict, schema=schema)
 
     path = out_path / "report.json"
-    path.write_text(json.dumps(report_dict, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    
+    path.write_text(
+        json.dumps(report_dict, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
     print(f"[FAIRy] Wrote {path.resolve()}")
     return path

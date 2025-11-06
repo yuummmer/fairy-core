@@ -17,22 +17,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import json
-from typing import List, Dict, Any
-import pandas as pd
 from hashlib import sha256
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
 
 # pull shared types/utilities
 from ..validation_api import (
     WarningItem,
-    Finding,
-    Attestation,
-    Report,
     now_utc_iso,
+)
+from ..validation_api import (
     validate_csv as _core_validate_csv,  # <-- NEW: import the canonical validate_csv
 )
-
 from ..validators import rna  # to call check_* helpers
 
 
@@ -56,7 +55,7 @@ def _map_severity(internal: str) -> str:
 
 
 def _where_from_issue(issue: WarningItem, fallback_where: str) -> str:
-    bits: List[str] = []
+    bits: list[str] = []
     if issue.row is not None and issue.row >= 0:
         bits.append(f"row {issue.row}")
     if issue.column:
@@ -65,7 +64,9 @@ def _where_from_issue(issue: WarningItem, fallback_where: str) -> str:
         return ", ".join(bits)
     return fallback_where
 
+
 # === provenance helpers
+
 
 def _sha256_file(p: Path) -> str:
     """
@@ -79,7 +80,8 @@ def _sha256_file(p: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-def _summarize_tabular(p: Path) -> Dict[str, Any]:
+
+def _summarize_tabular(p: Path) -> dict[str, Any]:
     """
     Collect provenance for a TSV/CSV-like metadata file:
     -path (as string)
@@ -94,13 +96,14 @@ def _summarize_tabular(p: Path) -> Dict[str, Any]:
     path_str = str(p)
     file_hash = _sha256_file(p)
 
-    header: List[str] = []
+    header: list[str] = []
     n_cols = 0
     n_rows = 0
 
-    #Try Frictionless first
+    # Try Frictionless first
     try:
-        from frictionless import Resource # type: ignore
+        from frictionless import Resource  # type: ignore
+
         resource = Resource(path_str)
 
         # header list
@@ -117,7 +120,7 @@ def _summarize_tabular(p: Path) -> Dict[str, Any]:
             lines = f.read().splitlines()
 
         if lines:
-            header_line = lines [0]
+            header_line = lines[0]
             header = header_line.split("\t")
             n_cols = len(header)
             # everything after header is data rows
@@ -135,6 +138,7 @@ def _summarize_tabular(p: Path) -> Dict[str, Any]:
         "header": header,
     }
 
+
 def run_rulepack(
     rulepack_path: Path,
     samples_path: Path,
@@ -148,7 +152,7 @@ def run_rulepack(
     samples_df = pd.read_csv(samples_path, sep="\t", dtype=str).fillna("")
     files_df = pd.read_csv(files_path, sep="\t", dtype=str).fillna("")
 
-    all_findings: List[dict] = []
+    all_findings: list[dict] = []
 
     for rule in pack["rules"]:
         spec = rule["check"]
@@ -238,11 +242,10 @@ def run_rulepack(
         "submission_ready": (fail_count == 0),
         "fail_count": fail_count,
         "warn_count": warn_count,
-
         "inputs": {
             "samples": samples_meta,
             "files": files_meta,
-        }
+        },
     }
 
     report = {

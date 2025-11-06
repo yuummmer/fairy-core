@@ -4,44 +4,34 @@
 # fairy/cli/preflight.py
 
 from __future__ import annotations
-from pathlib import Path
+
 import json
+from pathlib import Path
+
 import typer
 
 from fairy.core.services.validator import run_rulepack
 
 app = typer.Typer(help="FAIRy CLI commands")
 
+
 @app.command("preflight")
 def preflight(
     rulepack: str = typer.Option(
         ...,
         "--rulepack",
-        help="Path to rulepack JSON (e.g. fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json)"
+        help="Path to rulepack JSON (e.g. fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json)",
     ),
-    samples: str = typer.Option(
-        ...,
-        "--samples",
-        help="Path to samples.tsv"
-    ),
-    files: str = typer.Option(
-        ...,
-        "--files",
-        help="Path to files.tsv / file manifest"
-    ),
-    out: str = typer.Option(
-        ...,
-        "--out",
-        help="Where to write FAIRy report JSON"
-    ),
+    samples: str = typer.Option(..., "--samples", help="Path to samples.tsv"),
+    files: str = typer.Option(..., "--files", help="Path to files.tsv / file manifest"),
+    out: str = typer.Option(..., "--out", help="Where to write FAIRy report JSON"),
     fairy_version: str = typer.Option(
-        "0.2.0",
-        "--fairy-version",
-        help="Version string to embed in attestation"
+        "0.2.0", "--fairy-version", help="Version string to embed in attestation"
     ),
 ):
     """
-    Run FAIRy rulepack validation on a dataset and emit a machine-readable report containing the attestation block and all findings.
+    Run FAIRy rulepack validation and emit a machine-readable report
+containing the attestation block and all findings.
 
     Example:
         python -m fairy.cli.preflight preflight \
@@ -72,7 +62,11 @@ def preflight(
     # friendly terminal summary
     att = report["attestation"]
     print("")
-    print("FAIRy preflight complete ✅" if att["submission_ready"] else "FAIRy preflight complete ❌ (not submission-ready)")
+    print(
+        "FAIRy preflight complete ✅"
+        if att["submission_ready"]
+        else "FAIRy preflight complete ❌ (not submission-ready)"
+    )
     print(f"Rulepack: {att['rulepack_id']}@{att['rulepack_version']}")
     print(f"FAIL: {att['fail_count']} WARN: {att['warn_count']}")
     print(f"submission-ready: {att['submission_ready']}")
@@ -85,8 +79,10 @@ def preflight(
         print(f"   fix: {finding['how_to_fix']}")
     print("")
 
+
 def main():
     app()
+
 
 if __name__ == "__main__":
     main()

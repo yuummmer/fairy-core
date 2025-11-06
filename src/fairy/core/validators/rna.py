@@ -2,7 +2,7 @@
 # Copyright (c) 2025 Jennifer Slotnick
 
 import re
-from typing import List, Dict, Set
+
 import pandas as pd
 
 from ..validation_api import Meta, WarningItem, register
@@ -18,7 +18,7 @@ class RNAValidator:
     def validate(self, path: str) -> Meta:
         df = pd.read_csv(path)
 
-        warnings: List[WarningItem] = []
+        warnings: list[WarningItem] = []
         warnings.extend(check_required_columns(df, self.REQUIRED))
         warnings.extend(check_not_null(df, "sample_id"))
         warnings.extend(check_read_length(df, "read_length"))
@@ -41,13 +41,14 @@ register("rna", RNAValidator())
 # === helpers used by 'validate' and 'preflight'
 #
 
-def check_required_columns(df: pd.DataFrame, required_cols: List[str]) -> List[WarningItem]:
+
+def check_required_columns(df: pd.DataFrame, required_cols: list[str]) -> list[WarningItem]:
     """
     Spec: rule['check']['type'] == 'require_columns'
           rule['check']['required_columns'] = [...]
     We FAIL (severity="error") if any required col is missing.
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
     for col in required_cols:
         if col not in df.columns:
             issues.append(
@@ -63,12 +64,12 @@ def check_required_columns(df: pd.DataFrame, required_cols: List[str]) -> List[W
     return issues
 
 
-def check_not_null(df: pd.DataFrame, col: str) -> List[WarningItem]:
+def check_not_null(df: pd.DataFrame, col: str) -> list[WarningItem]:
     """
     Used in simple CSV validation, not directly by run_rulepack().
     FAIL (severity='error') if a required field is blank/null.
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
     if col in df.columns:
         nullish = df[col].isna() | df[col].astype(str).str.strip().eq("")
         for r in df.index[nullish]:
@@ -85,12 +86,12 @@ def check_not_null(df: pd.DataFrame, col: str) -> List[WarningItem]:
     return issues
 
 
-def check_read_length(df: pd.DataFrame, col: str) -> List[WarningItem]:
+def check_read_length(df: pd.DataFrame, col: str) -> list[WarningItem]:
     """
     Just an example QC: read_length should be numeric >= 1.
     We'll WARN (severity='warning') if not.
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
     if col in df.columns:
         rl = pd.to_numeric(df[col], errors="coerce").fillna(-1)
         bad_mask = rl < 1
@@ -112,14 +113,15 @@ def check_read_length(df: pd.DataFrame, col: str) -> List[WarningItem]:
 # === helpers only used by run_rulepack() / rulepack-driven checks
 #
 
-def check_bio_context(df: pd.DataFrame, biological_context_cols: List[str]) -> List[WarningItem]:
+
+def check_bio_context(df: pd.DataFrame, biological_context_cols: list[str]) -> list[WarningItem]:
     """
     Spec: type == 'at_least_one_nonempty_per_row'
           spec['column_groups'][0] = ["tissue", "cell_line", "cell_type", ...]
     For each row in samples, at least ONE of those columns must be non-empty.
     If no biological context at all => FAIL (severity='error').
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
 
     for idx, row in df.iterrows():
         has_any = False
@@ -151,7 +153,7 @@ def check_id_crossmatch(
     files_df: pd.DataFrame,
     *,
     samples_key: str,
-) -> List[WarningItem]:
+) -> list[WarningItem]:
     """
     Spec: type == 'id_crosscheck'
           spec['left_key'] -> passed in as samples_key
@@ -159,17 +161,15 @@ def check_id_crossmatch(
     We enforce: every files_df[samples_key] must exist in samples_df[samples_key].
     Missing or unknown sample_id => FAIL (severity='error').
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
 
     # If the expected column doesn't exist in either frame, just bail cleanly
     if samples_key not in samples_df.columns or samples_key not in files_df.columns:
         return issues
 
     # Build known IDs from samples.tsv
-    known_ids: Set[str] = set(
-        str(x).strip()
-        for x in samples_df[samples_key].fillna("")
-        if str(x).strip() != ""
+    known_ids: set[str] = set(
+        str(x).strip() for x in samples_df[samples_key].fillna("") if str(x).strip() != ""
     )
 
     # Check each row in files.tsv
@@ -210,7 +210,7 @@ def check_paired_end_complete(
     file_col: str,
     r1_pattern: str,
     r2_pattern: str,
-) -> List[WarningItem]:
+) -> list[WarningItem]:
     """
     Spec: type == 'paired_end_complete'
           spec provides:
@@ -225,7 +225,7 @@ def check_paired_end_complete(
     we expect both an R1 and an R2 file for that sample.
     Missing mate => FAIL.
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
 
     rx_r1 = re.compile(r1_pattern)
     rx_r2 = re.compile(r2_pattern)
@@ -263,8 +263,8 @@ def check_paired_end_complete(
 
 def check_dates_iso8601(
     df: pd.DataFrame,
-    date_cols: List[str],
-) -> List[WarningItem]:
+    date_cols: list[str],
+) -> list[WarningItem]:
     """
     Spec: type == 'dates_are_iso8601'
           spec['columns'] = ["collection_date", ...]
@@ -272,7 +272,7 @@ def check_dates_iso8601(
     Rule: each non-empty value in those columns must match YYYY-MM-DD.
     Violations are WARN, not FAIL.
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
     iso_pat = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
     for col in date_cols:
@@ -301,8 +301,8 @@ def check_processed_data_present(
     *,
     samples_key: str,
     raw_file_glob: str,
-    processed_globs: List[str],
-) -> List[WarningItem]:
+    processed_globs: list[str],
+) -> list[WarningItem]:
     """
     Spec: type == 'processed_data_present'
           spec['samples_key']                e.g. "sample_id"
@@ -312,7 +312,7 @@ def check_processed_data_present(
     Rule: for each sample, if we see raw FASTQs, do we also see at least
     one processed/quant file? If not, WARN.
     """
-    issues: List[WarningItem] = []
+    issues: list[WarningItem] = []
 
     if samples_key not in files_df.columns:
         return issues

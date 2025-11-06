@@ -1,13 +1,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2025 Jennifer Slotnick
 
-import pandas as pd
-from pathlib import Path
 from hashlib import sha256
+from pathlib import Path
+
+import pandas as pd
+
 from fairy.core.services.validator import validate_csv
 
 # Ensure validators self-register on import (side effects)
-from fairy.core.validators import generic as _generic, rna as _rna  # noqa: F401
+from fairy.core.validators import generic as _generic  # noqa: F401
+
 
 def _sha256_file(path: str) -> str:
     h = sha256()
@@ -15,6 +18,7 @@ def _sha256_file(path: str) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
 
 def process_csv(path: str):
     """Shim for legacy tests: returns (meta, df)."""

@@ -4,7 +4,9 @@
 # fairy/core/validators/generic.py
 
 import pandas as pd
+
 from ..validation_api import Meta, register
+
 
 class GenericCSVValidator:
     name = "generic"
@@ -22,5 +24,6 @@ class GenericCSVValidator:
             fields_validated=fields,
             warnings=[],
         )
+
 
 register("generic", GenericCSVValidator())

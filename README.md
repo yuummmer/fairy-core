@@ -1,78 +1,128 @@
-# ✨ FAIRy Skeleton
+<!-- Project badges -->
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![Rulepacks: CC0-1.0](https://img.shields.io/badge/Rulepacks-CC0%E2%80%911.0-lightgrey.svg)](src/fairy/rulepacks/LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](#)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](.pre-commit-config.yaml)
 
-🚧 **Prototype / Smoketest** 🚧  
-This is an experimental [Streamlit](https://streamlit.io/) prototype for FAIRy —  
-a local-first validator and packager for FAIR-compliant data submissions.  
+# ✨ FAIRy Core ✨
 
-- ✅ Shows basic flows: create project, upload CSV, validate, export placeholder  
-- ⚠️ Not production-ready — meant for demos, testing, and early feedback  
-- 🔓 The clean, open-source FAIRy Core engine (validator, templates, CLI) will live in a separate repo soon
+Local-first validator and packager for FAIR-compliant research datasets.
+This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq).
+
+- ✅ Validates tabular metadata against repository-specific **rulepacks**
+- ✅ Emits **machine-readable** (JSON) and **human-readable** (Markdown) reports
+- ✅ Writes **attestation & provenance**, with optional export bundle (zip)
+- 🧪 Includes intentionally “failing” fixtures for smoketests
+- 🚧 Early alpha; interfaces may change prior to v1.0
 
 ---
 
-## 📸 Screenshot
+## Quickstart (90 seconds)
 
-### Dashboard view
-![FAIRy Dashboard](FAIRy_Dash.png)
+> Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
+```bash
+# 1) Install (editable)
+pip install -e .
+
+# 2) Check the CLI
+fairy --version
+
+# 3) Run a preflight check (GEO bulk RNA-seq rulepack)
+fairy preflight \
+  --rulepack src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json \
+  --samples  /path/to/samples.tsv \
+  --files    /path/to/files.tsv \
+  --out      out/report.json
+
+# 4) Inspect the results
+jq '.attestation.submission_ready, (.findings | length)' out/report.json
+```
+---
+## What you get
+
+out/report.json — structured findings + attestation (includes dataset hashes, timing, FAIRy version)
+
+(optional) report.md — friendly summary (see “Export bundle” below to generate it)
 ---
 
-## 🚀 Getting Started
+## Export bundle (optional, one call)
 
-Clone the repo and set up a virtual environment:
-
-```bash
-git clone https://github.com/yuummmer/metadata-wizard.git
-cd metadata-wizard   # or fairy-skeleton if you renamed it
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app.py
-```
-## Quickstart (v0.1)
-```bash
-Prereqs: Python 3.11+, `pip install -e .`
-```
-Produce a schema-validated report at project_dir/out/report.json:
+Generates report.json, report.md, copies your inputs, writes manifest.json and provenance.json, and zips the folder.
 ```bash
 python - <<'PY'
-from fairy.core.services.report_writer import write_report
-write_report("project_dir/out",
-    filename="samples_toy.csv",
-    sha256="0"*64,
-    meta={"n_rows":1,"n_cols":2,"fields_validated":["a","b"],"warnings":[]},
-    rulepacks=[],
-    provenance={"license":None,"source_url":None,"notes":None},
-    input_path="samples_toy.csv")
-PY
-# → [FAIRy] Wrote /abs/path/project_dir/out/report.json
-```
-Optional: validate the output against the JSON Schema
-```bash
-python - <<'PY'
-import json, jsonschema
 from pathlib import Path
-schema = json.loads(Path("schemas/report_v0.schema.json").read_text())
-data = json.loads(Path("project_dir/out/report.json").read_text())
-jsonschema.validate(data, schema)
-print("✅ report.json validates")
+from fairy.core.services.export_adapter import export_submission
+res = export_submission(
+    project_dir=Path("."),  # outputs under ./exports/<timestamp>/
+    rulepack=Path("src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json"),
+    samples=Path("/path/to/samples.tsv"),
+    files=Path("/path/to/files.tsv"),
+)
+print("Export dir:", res.export_dir)
+print("Bundle zip:", res.zip_path)
+print("Report JSON:", res.report_path)
+print("Report MD:", res.report_md_path)
 PY
+
 ```
-## 🧪 Tests
+---
+
+## Tests
 ```bash
 pytest -q
 ```
-## 🗺️ Roadmap (v0.1 scope)
-Streamlit Export & Validate tab wired to backend (warn-mode).
+---
 
-Deterministic report.json writer validated by JSON Schema.
+## Repo layout
+```bash
+src/fairy/
+  cli/                  # CLI entrypoints (e.g., validate, preflight)
+  core/                 # services, models, validators, exporters
+  rulepacks/            # repository-specific rulepacks (CC0-1.0)
+schemas/                # JSON Schemas for reports, etc.
+```
+---
 
-Golden fixture test for bad.csv.
+## Licensing
+- Core code (src/fairy/**, excluding rulepacks): AGPL-3.0-only. See LICENSE
+- Rulepacks (src/fairy/rulepacks/**): CC0-1.0 (public domain dedication). See src/fairy/rulepacks/LICENSE
+- Samples/fixtures (if present): CC BY-4.0 (documented per folder).
 
-(See GitHub issues for v0.2 items like bundles, manifests, ZIP export, and provenance.)
+Third-party attributions: see THIRD_PARTY_LICENSES.md
 
-## Attribution / Citation
+*Commercial licensing is available. See COMMERCIAL.md or contact hello@datadabra.com*
 
-If you use FAIRy, please cite:
-FAIRy (v0.1, prototype). URL: https://github.com/yuummmer/metadata-wizard
-This project reuses open-source components credited in the repository’s LICENSE and NOTICE sections.
+---
+
+## Developer notes
+- Source files use SPDX headers (pre-commit will add them if missing):
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+- We package rulepacks as package data:
+```toml
+[tool.setuptools.package-data]
+fairy = ["rulepacks/**/*.json","rulepacks/**/*.yaml","rulepacks/**/*.yml"]
+
+```
+- Local artifacts to ignore are preconfigured (.out/, exports/, .tmp/, .venv/, __pycache__/).
+
+---
+
+## Contributing
+Until v1.0, we’re not accepting external code contributions. Please open issues for bugs/ideas.
+(We may introduce a CLA later to enable dual/commercial licensing while keeping the project open.)
+
+---
+
+## Citation
+If you use FAIRy in a project or talk:
+
+FAIRy Core (v0.1, alpha). Datadabra.
+Repository: https://github.com/yuummmer/fairy-core
+
+## Roadmap
+- Rulepack adapters (aliases, NA sentinels, regex/type coercions, unit enums)
+- Multi-input CLI UX(auto-detect TSV/CSV, merge on sample_id)
+- Richer provenance + determinism tests (goldens)
+- Hosted UI orchestrator (separate repo)

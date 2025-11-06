@@ -1,0 +1,36 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# Project
+.out/
+exports/
+.tmp/
+.DS_Store
+.idea/
+.vscode/
+
+out/
+
+# Local environments & caches
+.venv/
+.pytest_cache/
+__pycache__/
+
+# Build/packaging
+*.egg-info/
+dist/
+build/
+
+# FAIRy run artifacts
+.out/
+out/
+exports/
+.tmp/

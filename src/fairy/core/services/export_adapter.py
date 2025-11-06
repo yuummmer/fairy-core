@@ -3,16 +3,18 @@
 
 # fairy/core/services/export_adapter.py
 from __future__ import annotations
-from dataclasses import dataclass
-from pathlib import Path
-from datetime import datetime, timezone
-import json
-import hashlib
-import shutil
-import os
 
+import hashlib
+import json
+import os
+import shutil
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+
+from ...cli.run import FAIRY_VERSION, _emit_preflight_markdown  # reuse your MD emitter
 from ..services.validator import run_rulepack
-from ...cli.run import _emit_preflight_markdown, FAIRY_VERSION  # reuse your MD emitter
+
 
 @dataclass
 class ExportResult:
@@ -23,6 +25,7 @@ class ExportResult:
     report_path: Path
     report_md_path: Path
 
+
 def _sha256_of_file(p: Path) -> str:
     h = hashlib.sha256()
     with p.open("rb") as f:
@@ -30,13 +33,16 @@ def _sha256_of_file(p: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
 def _now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def _write_json(path: Path, obj: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
 
 def run_preflight_and_write(
     *,
@@ -67,10 +73,11 @@ def run_preflight_and_write(
         md_path=md_path,
         att=report["attestation"],
         report=report,
-        resolved_codes=[],      # resolved diff is optional for export demo
-        prior_codes=set(),      # pass empty set so emitter renders the block
+        resolved_codes=[],  # resolved diff is optional for export demo
+        prior_codes=set(),  # pass empty set so emitter renders the block
     )
     return json_path, md_path, report["attestation"]
+
 
 def _shim_build_bundle(
     *,
@@ -86,13 +93,16 @@ def _shim_build_bundle(
     - Creates bundle.zip containing the export_dir contents
     """
     manifest_items = []
+
     def _add(p: Path):
         rel = p.relative_to(export_dir).as_posix()
-        manifest_items.append({
-            "path": rel,
-            "sha256": _sha256_of_file(p),
-            "bytes": p.stat().st_size,
-        })
+        manifest_items.append(
+            {
+                "path": rel,
+                "sha256": _sha256_of_file(p),
+                "bytes": p.stat().st_size,
+            }
+        )
 
     # Write manifest.json
     manifest_path = export_dir / "manifest.json"
@@ -108,13 +118,21 @@ def _shim_build_bundle(
         "created_at_utc": _now_utc_iso(),
         "fairy_version": FAIRY_VERSION,
         "inputs": {
-            "samples": (export_dir / "samples.tsv").as_posix() if (export_dir / "samples.tsv").exists() else None,
-            "files": (export_dir / "files.tsv").as_posix() if (export_dir / "files.tsv").exists() else None,
+            "samples": (
+                (export_dir / "samples.tsv").as_posix()
+                if (export_dir / "samples.tsv").exists()
+                else None
+            ),
+            "files": (
+                (export_dir / "files.tsv").as_posix()
+                if (export_dir / "files.tsv").exists()
+                else None
+            ),
             "report_json": report_json.as_posix(),
         },
         "environment": {
             "platform": os.name,
-        }
+        },
     }
     provenance_path = export_dir / "provenance.json"
     _write_json(provenance_path, prov)
@@ -126,6 +144,7 @@ def _shim_build_bundle(
     zip_path = Path(zip_path_str)
 
     return zip_path, manifest_path, provenance_path
+
 
 def export_submission(
     *,
