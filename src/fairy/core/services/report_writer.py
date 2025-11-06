@@ -5,7 +5,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, is_dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+
+try:  # py311+
+    from datetime import UTC
+except Exception:  # py310 fallback
+    from datetime import timezone as _timezone
+
+    UTC = _timezone.utc
 from pathlib import Path
 
 import jsonschema
