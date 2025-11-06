@@ -1,24 +1,54 @@
-import hashlib
-from pathlib import Path
+from .helpers import normalize_json
 
 
-def sha256(p: Path):
-    return hashlib.sha256(p.read_bytes()).hexdigest()
-
-
-def test_manifest_is_stable(tmp_pkg, run_cli, freeze_2025, tmp_path):
+def test_preflight_output_is_deterministic(
+    run_cli, rulepack_path, samples_path, files_path, freeze_2025, tmp_path
+):
     out1 = tmp_path / "out1"
     out1.mkdir()
     out2 = tmp_path / "out2"
     out2.mkdir()
 
+    rep1 = out1 / "report.json"
+    rep2 = out2 / "report.json"
+
     run_cli(
-        ["python", "-m", "fairy", "preflight", str(tmp_pkg), "--out", str(out1), "--format", "json"]
+        [
+            "python",
+            "-m",
+            "fairy.cli.run",
+            "preflight",
+            "--rulepack",
+            str(rulepack_path),
+            "--samples",
+            str(samples_path),
+            "--files",
+            str(files_path),
+            "--out",
+            str(rep1),
+        ]
     )
     run_cli(
-        ["python", "-m", "fairy", "preflight", str(tmp_pkg), "--out", str(out2), "--format", "json"]
+        [
+            "python",
+            "-m",
+            "fairy.cli.run",
+            "preflight",
+            "--rulepack",
+            str(rulepack_path),
+            "--samples",
+            str(samples_path),
+            "--files",
+            str(files_path),
+            "--out",
+            str(rep2),
+        ]
     )
 
-    m1 = (out1 / "manifest.json").read_text()
-    m2 = (out2 / "manifest.json").read_text()
-    assert m1 == m2, "manifest.json should be identical for identical inputs when time is frozen"
+    assert rep1.exists() and rep2.exists(), "preflight outputs missing"
+
+    got1 = normalize_json(rep1)
+    got2 = normalize_json(rep2)
+    assert (
+        got1 == got2
+    ), "preflight outputs should be identical for identical inputs (with time frozen)"

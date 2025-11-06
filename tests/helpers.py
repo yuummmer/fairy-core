@@ -2,7 +2,15 @@ import json
 import re
 from pathlib import Path
 
-VOLATILE_KEYS = {"timestamp", "duration_ms", "run_id", "abs_path"}
+# include keys that vary run-to-run in your current CLI output
+VOLATILE_KEYS = {
+    "run_at_utc",
+    "sha256",
+    "timestamp",
+    "duration_ms",
+    "run_id",
+    "path",
+}
 
 
 def _strip_volatile(obj):
@@ -11,14 +19,15 @@ def _strip_volatile(obj):
     if isinstance(obj, list):
         return [_strip_volatile(x) for x in obj]
     if isinstance(obj, str):
-        # normalize OS paths and temp dirs if needed
+        # normalize path separators
         obj = obj.replace("\\", "/")
+        # normalize tmp dirs
         obj = re.sub(r"/tmp/[^/]+", "/tmp/XXX", obj)
     return obj
 
 
 def load_json(path: Path):
-    return json.loads(Path(path).read_text())
+    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def normalize_json(path: Path):

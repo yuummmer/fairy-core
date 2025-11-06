@@ -1,49 +1,51 @@
 import subprocess
-import textwrap
 from pathlib import Path
 
 import pytest
 from freezegun import freeze_time
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-CLI = ["python", "-m", "fairy"]
 
 
-@pytest.fixture
-def tmp_pkg(tmp_path: Path):
-    """Create a minimal fake FAIRy package: profile, data, and rulepack."""
-    pkg = tmp_path / "sample_pkg"
-    (pkg / "data").mkdir(parents=True)
-    # minimal CSV/TSV that your validators expect
-    (pkg / "data" / "samples.csv").write_text("sample_id,organism\nS1,Homo sapiens\n")
-
-    # example rulepack/profile; tweak to match your schema keys
-    (pkg / "profile.yaml").write_text(
-        textwrap.dedent(
-            """
-        name: ENA_draft
-        version: 0.1.0
-        rules:
-          - id: GEO.META.REQUIRED
-            field: organism
-            type: required
-          - id: GEO.FILENAME.CHARS
-            field: samples.csv
-            type: filename_allowed_chars
-    """
-        ).strip()
+def _find_rulepack() -> Path:
+    # pick the first JSON rulepack under GEO-SEQ-BULK
+    candidates = list(
+        (PROJECT_ROOT / "src" / "fairy" / "rulepacks" / "GEO-SEQ-BULK").rglob("*.json")
     )
+    if not candidates:
+        pytest.skip("No rulepack JSON found under src/fairy/rulepacks/GEO-SEQ-BULK")
+    return candidates[0]
 
-    return pkg
+
+@pytest.fixture(scope="session")
+def rulepack_path() -> Path:
+    return _find_rulepack()
+
+
+@pytest.fixture(scope="session")
+def samples_path() -> Path:
+    # default demo location you created earlier
+    p = PROJECT_ROOT / "demos" / "scratchrun" / "samples.tsv"
+    if not p.exists():
+        pytest.skip("demos/scratchrun/samples.tsv not found — add demo TSVs or skip.")
+    return p
+
+
+@pytest.fixture(scope="session")
+def files_path() -> Path:
+    p = PROJECT_ROOT / "demos" / "scratchrun" / "files.tsv"
+    if not p.exists():
+        pytest.skip("demos/scratchrun/files.tsv not found — add demo TSVs or skip.")
+    return p
 
 
 @pytest.fixture
 def run_cli():
-    """Run the CLI in a subprocess to stay framework-agnostic (Click/Typer/Argparse)."""
+    """Run the argparse CLI (module = fairy.cli.run). Returns (code, stdout, stderr)."""
 
     def _run(args, cwd: Path = PROJECT_ROOT):
-        result = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
-        return result.returncode, result.stdout, result.stderr
+        proc = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+        return proc.returncode, proc.stdout, proc.stderr
 
     return _run
 
