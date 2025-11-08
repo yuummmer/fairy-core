@@ -55,7 +55,8 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 ---
 
 ## Quickstart (90 seconds)
-New: validate is now available alongside preflight — run custom rulepacks with --rulepack and get JSON/Markdown reports (see Penguins demo below).
+> **New:** `validate` is now available alongside `preflight` — run custom rulepacks with `--rulepack` and get JSON/Markdown reports (see Penguins demo below).
+
 > Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
 ```bash
@@ -77,7 +78,9 @@ jq '.attestation.submission_ready, (.findings | length)' out/report.json
 ```
 ---
 ## 🐧 Rulepacks Quickstart (Penguins demo)
-Try --rulepack on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
+
+Try `--rulepack` on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
+
 ```bash
 # Create temp outputs
 mkdir -p .tmp
@@ -91,6 +94,7 @@ python -m fairy.cli.validate tests/fixtures/penguins_small.csv \
 # Inspect results
 cat .tmp/report.md
 
+
 ```
 What this checks
 
@@ -98,6 +102,26 @@ What this checks
 - unique: uniqueness across one or more columns
 - enum: values must be in an allow-list (supports normalize: {trim, casefold})
 - range: numeric min/max (inclusive by default)
+
+What you'll see (excerpt)
+
+# FAIRy Validate Report
+
+**Timestamp:** 2025-11-07T20:12:34Z
+**Rulepack:** penguins-kata@0.1.0 (demos/rulepacks/penguins.yml)
+
+## Summary
+- PASS: 6
+- WARN: 3
+- FAIL: 1
+
+## Findings for `tests/fixtures/penguins_small.csv`
+### [FAIL] no_dups — no_duplicate_rows
+Duplicates at rows [7]
+
+### [WARN] bill_len_range — range
+Out of bounds rows [8,10] (count=2)
+
 
 YAML (excerpt)
 ```yaml
