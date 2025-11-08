@@ -1,0 +1,74 @@
+id: penguins-kata
+version: 0.1.0
+description: Custom checks for Palmer Penguins
+resources:
+  - pattern: "penguins*.csv"
+    rules:
+      - id: no_dups
+        type: no_duplicate_rows
+        keys:
+          - species
+          - island
+          - bill_length_mm
+          - bill_depth_mm
+          - flipper_length_mm
+          - body_mass_g
+          - sex
+          - year
+        severity: fail
+
+      - id: species_enum
+        type: enum
+        column: species
+        allow: ["Adelie", "Chinstrap", "Gentoo"]
+        severity: fail
+
+      - id: island_enum
+        type: enum
+        column: island
+        allow: ["Biscoe", "Dream", "Torgersen"]
+        severity: fail
+
+      - id: sex_enum
+        type: enum
+        column: sex
+        allow: ["male", "female"]
+        normalize: {casefold: true, trim: true}
+        severity: warn
+
+      - id: bill_len_range
+        type: range
+        column: bill_length_mm
+        min: 30
+        max: 60
+        inclusive: true
+        severity: warn
+
+      - id: bill_depth_range
+        type: range
+        column: bill_depth_mm
+        min: 13
+        max: 22
+        inclusive: true
+        severity: warn
+
+      - id: flipper_range
+        type: range
+        column: flipper_length_mm
+        min: 170
+        max: 235
+        inclusive: true
+        severity: warn
+
+      - id: mass_range
+        type: range
+        column: body_mass_g
+        min: 2700
+        max: 6300
+        inclusive: true
+        severity: warn
+
+      - id: row_uid_optional
+        type: unique
+        columns: ["row_id"]
+        severity: warn
