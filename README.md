@@ -55,7 +55,7 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 ---
 
 ## Quickstart (90 seconds)
-
+New: validate is now available alongside preflight — run custom rulepacks with --rulepack and get JSON/Markdown reports (see Penguins demo below).
 > Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
 ```bash
@@ -75,6 +75,62 @@ fairy preflight \
 # 4) Inspect the results
 jq '.attestation.submission_ready, (.findings | length)' out/report.json
 ```
+---
+## 🐧 Rulepacks Quickstart (Penguins demo)
+Try --rulepack on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
+```bash
+# Create temp outputs
+mkdir -p .tmp
+
+# Run FAIRy with a demo rulepack (numeric ranges, enums, unique, dup)
+python -m fairy.cli.validate tests/fixtures/penguins_small.csv \
+  --rulepack demos/rulepacks/penguins.yml \
+  --report-json .tmp/report.json \
+  --report-md   .tmp/report.md || true
+
+# Inspect results
+cat .tmp/report.md
+
+```
+What this checks
+
+- dup (alias no_duplicate_rows): duplicate rows by composite keys
+- unique: uniqueness across one or more columns
+- enum: values must be in an allow-list (supports normalize: {trim, casefold})
+- range: numeric min/max (inclusive by default)
+
+YAML (excerpt)
+```yaml
+# demos/rulepacks/penguins.yml
+id: penguins-kata
+version: 0.1.0
+resources:
+  - pattern: "penguins*.csv"
+    rules:
+      - id: no_dups
+        type: no_duplicate_rows
+        keys: [species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year]
+        severity: fail
+      - id: species_enum
+        type: enum
+        column: species
+        allow: ["Adelie", "Chinstrap", "Gentoo"]
+        severity: fail
+      - id: bill_len_range
+        type: range
+        column: bill_length_mm
+        min: 30
+        max: 60
+        inclusive: true
+        severity: warn
+
+```
+Outputs
+- .tmp/report.json — deterministic JSON (sorted keys)
+
+- .tmp/report.md — human-readable summary
+- Exit code: 1 if any rule FAILs; otherwise 0
+ Dataset credit: tiny fixture derived from Palmer Penguins (CC0). Attribution appreciated: Horst, Hill & Gorman / Palmer Station LTER.
 ---
 ## What you get
 
@@ -116,8 +172,15 @@ pytest -q
 src/fairy/
   cli/                  # CLI entrypoints (e.g., validate, preflight)
   core/                 # services, models, validators, exporters
+  validation/           # rulepack runner + checks (MVP lives here)
   rulepacks/            # repository-specific rulepacks (CC0-1.0)
 schemas/                # JSON Schemas for reports, etc.
+demos/
+  rulepacks/            # demo rulepacks (not shipped in wheels)
+tests/
+  fixtures/             # tiny CSVs & local rulepacks for tests
+  golden/               # deterministic expected reports (optional)
+
 ```
 ---
 
