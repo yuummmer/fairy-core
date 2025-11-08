@@ -29,8 +29,3 @@ Thumbs.db
 tests/golden/.fairy_last_run.json
 reports/
 .tmp/
-
-# demo recording artifacts
-demo_validate.cast
-demo_validate.svg
-docs/assets/validate_penguins.gif
