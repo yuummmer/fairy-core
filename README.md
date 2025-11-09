@@ -55,12 +55,7 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 ---
 
 ## Quickstart (90 seconds)
-<<<<<<< HEAD
-> **New:** `validate` is now available alongside `preflight` — run custom rulepacks with `--rulepack` and get JSON/Markdown reports (see Penguins demo below).
-
-=======
 New: validate is now available alongside preflight — run custom rulepacks with --rulepack and get JSON/Markdown reports (see Penguins demo below).
->>>>>>> 19c716c (update README.md with Penguins example in Quickstart)
 > Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
 ```bash
@@ -82,13 +77,7 @@ jq '.attestation.submission_ready, (.findings | length)' out/report.json
 ```
 ---
 ## 🐧 Rulepacks Quickstart (Penguins demo)
-<<<<<<< HEAD
-
-Try `--rulepack` on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
-
-=======
 Try --rulepack on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
->>>>>>> 19c716c (update README.md with Penguins example in Quickstart)
 ```bash
 # Create temp outputs
 mkdir -p .tmp
@@ -102,10 +91,6 @@ python -m fairy.cli.validate tests/fixtures/penguins_small.csv \
 # Inspect results
 cat .tmp/report.md
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 19c716c (update README.md with Penguins example in Quickstart)
 ```
 What this checks
 
@@ -194,6 +179,95 @@ print("Report MD:", res.report_md_path)
 PY
 
 ```
+## Multi-input validation (--inputs name=path)
+Some datasets are split across multiple tables (e.g., artworks.csv + artists.csv). FAIRy can validate them in one run, enabling cross-table checks like foreign keys and lookups.
+
+#### Usage
+Option A - Single input
+```bash
+# single file (kept forever; maps to table name "default")
+fairy validate metadata.csv --rulepack rules.yaml --report-json out.json
+
+# folder containing CSVs (stems become table names)
+fairy validate data/ --rulepack rules.yaml --report-json out.json
+# e.g., data/artworks.csv → table "artworks", data/artists.csv → table "artists"
+
+```
+Option B - explicit multi-input
+```bash
+fairy validate \
+  --rulepack rules.yaml \
+  --inputs artworks=artworks.csv \
+  --inputs artists=artists.csv \
+  --report-json out.json
+
+```
+- repeat --inputs for each table you want to pass
+- table names are the keys (left side), file paths on the right.
+
+Rulepack example (cross-table FK)
+```yaml
+id: tate-art-collections
+version: 0.1.0
+
+resources:
+  - pattern: artworks.csv
+    rules:
+      - id: fk_artworks_artistId
+        type: foreign_key
+        severity: fail
+        from: { table: artworks, field: artistId }
+        to:   { table: artists,  field: artistId }
+
+```
+- from.table and to.table must match the names provided via --inputs (or folder systems).
+- if a rulepack refers to an unknown table, FAIRy raises a clear error and lists the provided tables.
+
+### Reports
+- JSON/Markdown formats are unchanged
+- We append metadata.inputs (name to path) for provenance:
+```json
+{
+  "summary": { "pass": 1, "warn": 0, "fail": 0 },
+  "metadata": {
+    "inputs": {
+      "artworks": "tests/fixtures/art-collections/artworks_pass.csv",
+      "artists": "tests/fixtures/art-collections/artists.csv"
+    }
+  }
+}
+
+```
+Exit Codes
+- 0 when there are no FAIL findings
+- 1 when any rule emits FAIL (useful for CLI)
+
+### Examples
+Passing FK
+```bash
+fairy validate \
+  --rulepack tests/fixtures/art-collections/rulepack.yaml \
+  --inputs artworks=tests/fixtures/art-collections/artworks_pass.csv \
+  --inputs artists=tests/fixtures/art-collections/artists.csv \
+  --report-json out_pass.json
+# exit 0
+```
+Failing FK
+```bash
+fairy validate \
+  --rulepack tests/fixtures/art-collections/rulepack.yaml \
+  --inputs artworks=tests/fixtures/art-collections/artworks_fail_missing_artist.csv \
+  --inputs artists=tests/fixtures/art-collections/artists.csv \
+  --report-json out_fail.json
+# exit 1
+
+```
+### Notes and back compatibility
+- Positional single-input is kept forever
+    - File → table name default.
+    - Folder → each *.csv becomes a table named by its stem
+- Duplicate --inputs name: last one wins (a warning is logged)
+- Large datasets: FAIRy caches loaded tables by name during a run.
 ---
 
 ## Tests

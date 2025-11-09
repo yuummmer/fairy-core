@@ -9,7 +9,7 @@ import sys
 from hashlib import sha256
 from pathlib import Path
 
-from ..core.services.report_writer import _now_utc_iso, write_report
+from ..core.services.report_writer import _now_utc_iso
 from ..core.services.validator import run_rulepack
 from ..core.validation_api import validate_csv
 
@@ -64,46 +64,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub = p.add_subparsers(dest="command", metavar="<command>")
 
-    # validate
-    v = sub.add_parser(
-        "validate",
-        help="Validate a CSV and emit a report.",
-        description="Validate a CSV and emit JSON/Markdown reports.",
-    )
-    v.add_argument(
-        "input",
-        help="CSV file to validate (e.g., demos/PASS_minimal_rnaseq/metadata.csv)",
-    )
-    v.add_argument(
-        "--out",
-        default="project_dir/reports",
-        help="Output directory if using legacy JSON writer (default: project_dir/reports).",
-    )
-    v.add_argument(
-        "--report-json",
-        type=Path,
-        default=None,
-        metavar="PATH",
-        help="Write machine-readable JSON report to PATH (bypass legacy out-dir writer).",
-    )
-    v.add_argument(
-        "--report-md",
-        type=Path,
-        default=None,
-        metavar="PATH",
-        help="Write human-readable Markdown summary to PATH.",
-    )
-    v.add_argument(
-        "--rulepack",
-        type=Path,
-        default=None,
-        help="Optional rulepack file/folder (reserved for future use).",
-    )
-    v.add_argument(
-        "--kind",
-        default="rna",
-        help="Schema kind: rna | generic | dna | ... (default:rna).",
-    )
+    # validate (delegate to the new multi-input CLI)
+    from . import validate as validate_cmd
+
+    validate_cmd.add_subparser(sub)  # exposes --inputs etc.
 
     # preflight
     pf = sub.add_parser(
@@ -363,51 +327,13 @@ def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     parser = _build_parser()
     args = parser.parse_args(argv)
+    # each subparser sets func
+    if hasattr(args, "func"):
+        return args.func(args)
 
     # top-level --version (no subcommand)
     if args.version and (args.command is None):
         print(_version_text(None))
-        return 0
-
-    # 'validate' subcommand (existing behavior)
-    if args.command == "validate":
-        csv_path = _resolve_input_path(Path(args.input))
-        payload, _ = _build_payload(csv_path, kind=getattr(args, "kind", "rna"))
-
-        wrote_any = False
-
-        # new path: explicit file targets
-        if args.report_json:
-            args.report_json.parent.mkdir(parents=True, exist_ok=True)
-            # write JSON report directly to the requested file
-            args.report_json.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
-                encoding="utf-8",
-            )
-            wrote_any = True
-
-        if args.report_md:
-            _emit_markdown(args.report_md, payload)
-            wrote_any = True
-
-        # legacy path: existing directory-based writer
-        if not wrote_any:
-            path = write_report(
-                out_dir=args.out,
-                filename=csv_path.name,
-                sha256=payload["dataset_id"]["sha256"],
-                meta={
-                    "n_rows": payload["summary"]["n_rows"],
-                    "n_cols": payload["summary"]["n_cols"],
-                    "fields_validated": payload["summary"]["fields_validated"],
-                    "warnings": payload["warnings"],
-                },
-                rulepacks=[],
-                provenance={"license": None, "source_url": None, "notes": None},
-            )
-            print(f"Wrote {path}")
-
-        # 'validate' never fails build right now, even with warnings
         return 0
 
     # 'preflight' subcommand (NEW: GEO-style submission check)
