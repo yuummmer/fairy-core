@@ -34,3 +34,6 @@ reports/
 demo_validate.cast
 demo_validate.svg
 docs/assets/validate_penguins.gif
+
+# local run artifacts
+out_*.json

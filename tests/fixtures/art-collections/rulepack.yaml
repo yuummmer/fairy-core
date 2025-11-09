@@ -1,0 +1,11 @@
+# tests/fixtures/art-collections/rulepack.yaml
+id: tate-art-collections
+version: 0.1.0
+resources:
+  - pattern: artworks_*.csv   # <-- wildcard so pass/fail fixtures both match
+    rules:
+      - id: fk_artworks_artistId
+        type: foreign_key
+        severity: fail
+        from: { table: artworks, field: artistId }
+        to:   { table: artists,  field: artistId }

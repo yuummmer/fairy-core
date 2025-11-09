@@ -7,8 +7,8 @@ from typing import Any
 
 import pandas as pd
 
-# Accept both names for the row-duplicates rule
-CHECK_TYPES = {"dup", "unique", "enum", "range", "no_duplicate_rows"}
+# Accept both names for the row-duplicates rule (+ foreign_key for multi-input)
+CHECK_TYPES = {"dup", "unique", "enum", "range", "no_duplicate_rows", "foreign_key"}
 
 
 def _sha256(path: Path) -> str:
@@ -32,33 +32,54 @@ def _resource_matches(pattern: str, path: Path) -> bool:
 
 
 def run_rulepack(
-    inputs: list[Path], rulepack: dict[str, Any], rulepack_path: Path, timestamp_iso: str
+    inputs_map: dict[str, Path], rulepack: dict, rp_path: Path, now_iso: str
 ) -> dict[str, Any]:
+    """
+    Validate one or more inputs using a rulepack.
+
+    inputs_map: name -> CSV Path
+      - legacy single-file mode: {"default": <file>}
+      - folder/explicit multi:   {"artworks": <path>, "artists": <path>, ...}
+    """
     rp_id = rulepack.get("id", "")
     rp_ver = rulepack.get("version", "")
     resources_spec = rulepack.get("resources", []) or []
 
+    # ---- Load all inputs once (enables cross-table checks)
+    frames: dict[str, pd.DataFrame] = {}
+    for name, path in inputs_map.items():
+        frames[name] = pd.read_csv(path)
+
+    # ---- Attestation + metadata echo (non-breaking)
     att_inputs = []
-    for p in inputs:
+    for name, p in inputs_map.items():
         try:
             att_inputs.append(
-                {"path": str(p), "sha256": _sha256(p), "bytes": int(p.stat().st_size)}
+                {
+                    "name": name,
+                    "path": str(p),
+                    "sha256": _sha256(p),
+                    "bytes": int(p.stat().st_size),
+                    "rows": int(len(frames[name])),
+                }
             )
         except Exception:
-            att_inputs.append({"path": str(p), "sha256": "", "bytes": 0})
+            att_inputs.append({"name": name, "path": str(p), "sha256": "", "bytes": 0, "rows": 0})
 
     report: dict[str, Any] = {
         "attestation": {
-            "rulepack": {"id": rp_id, "version": rp_ver, "path": str(rulepack_path)},
+            "rulepack": {"id": rp_id, "version": rp_ver, "path": str(rp_path)},
             "inputs": att_inputs,
-            "timestamp": timestamp_iso,
+            "timestamp": now_iso,
         },
+        # New but non-breaking echo of provided inputs
+        "metadata": {"inputs": {k: str(v) for k, v in inputs_map.items()}},
         "summary": {"pass": 0, "warn": 0, "fail": 0},
         "resources": [],
     }
 
-    for path in inputs:
-        # Build the rules applicable to this file
+    # ---- Per-resource rules, matched by resource.pattern against file name
+    for name, path in inputs_map.items():
         applicable: list[dict[str, Any]] = []
         for res in resources_spec:
             pat = res.get("pattern")
@@ -68,8 +89,8 @@ def run_rulepack(
         if not applicable:
             continue
 
-        df = pd.read_csv(path)
-        resource_rules = []
+        df = frames[name]
+        resource_rules: list[dict[str, Any]] = []
 
         for r in sorted(applicable, key=lambda x: x.get("id", "")):
             rule_id = r.get("id", "")
@@ -99,6 +120,18 @@ def run_rulepack(
                         mx = r.get("max", None)
                         inclusive = bool(r.get("inclusive", True))
                         status, evidence = check_range(df, col, mn, mx, inclusive, severity)
+                    elif rtype == "foreign_key":
+                        # Simple cross-table FK presence check
+                        frm = r.get("from", {}) or {}
+                        to = r.get("to", {}) or {}
+                        status, evidence = _check_foreign_key(
+                            frames,
+                            from_table=frm.get("table", ""),
+                            from_field=frm.get("field", ""),
+                            to_table=to.get("table", ""),
+                            to_field=to.get("field", ""),
+                            severity=severity,
+                        )
                 except Exception as e:
                     status, evidence = "FAIL", {"error": "runtime_error", "message": str(e)}
 
@@ -112,23 +145,17 @@ def run_rulepack(
                 }
             )
 
-        # tally summary
-        for rr in resource_rules:
-            if rr["status"] == "FAIL":
+            # tally summary
+            if status == "FAIL":
                 report["summary"]["fail"] += 1
-            elif rr["status"] == "WARN":
+            elif status == "WARN":
                 report["summary"]["warn"] += 1
             else:
                 report["summary"]["pass"] += 1
 
-        # attach resource block
-        res_block = {"path": str(path), "rules": resource_rules}
+        # attach resource block (keep 'path' for MD writer compatibility)
+        res_block = {"name": name, "path": str(path), "rules": resource_rules}
         report["resources"].append(res_block)
-
-        # add row count to attestation
-        for att in report["attestation"]["inputs"]:
-            if att["path"] == str(path):
-                att["rows"] = int(len(df))
 
     return report
 
@@ -239,6 +266,56 @@ def check_range(
     if out:
         return _status_from_severity(severity), {
             "out_of_bounds": {"count": len(out), "rows": _rows_1based(out)}
+        }
+    return "PASS", {"count": 0}
+
+
+# ---------------- Foreign key (multi-input) ----------------
+
+
+def _check_foreign_key(
+    frames: dict[str, pd.DataFrame],
+    from_table: str,
+    from_field: str,
+    to_table: str,
+    to_field: str,
+    severity: str,
+) -> tuple[str, dict[str, Any]]:
+    if not from_table or not to_table or not from_field or not to_field:
+        return "FAIL", {"error": "config_missing_fk_fields"}
+    if from_table not in frames or to_table not in frames:
+        return (
+            "FAIL",
+            {
+                "error": "unknown_table",
+                "message": f"Have tables {sorted(frames.keys())}; "
+                f"need: {from_table}, {to_table}",
+            },
+        )
+
+    left = (
+        frames[from_table][from_field]
+        if from_field in frames[from_table].columns
+        else pd.Series(dtype="object")
+    )
+    right = (
+        frames[to_table][to_field]
+        if to_field in frames[to_table].columns
+        else pd.Series(dtype="object")
+    )
+
+    if left.empty and from_field not in frames[from_table].columns:
+        return "FAIL", {"error": "column_not_found", "column": f"{from_table}.{from_field}"}
+    if right.empty and to_field not in frames[to_table].columns:
+        return "FAIL", {"error": "column_not_found", "column": f"{to_table}.{to_field}"}
+
+    missing = sorted(set(left.dropna().unique()) - set(right.dropna().unique()))
+    if missing:
+        return _status_from_severity(severity), {
+            "missing_values": missing[:50],
+            "missing_count_estimate": len(missing),
+            "from": {"table": from_table, "field": from_field},
+            "to": {"table": to_table, "field": to_field},
         }
     return "PASS", {"count": 0}
 
