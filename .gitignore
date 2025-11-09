@@ -37,3 +37,6 @@ docs/assets/validate_penguins.gif
 
 # local run artifacts
 out_*.json
+
+# local run artifacts
+out_*.json
