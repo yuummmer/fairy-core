@@ -55,8 +55,12 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 ---
 
 ## Quickstart (90 seconds)
+<<<<<<< HEAD
 > **New:** `validate` is now available alongside `preflight` — run custom rulepacks with `--rulepack` and get JSON/Markdown reports (see Penguins demo below).
 
+=======
+New: validate is now available alongside preflight — run custom rulepacks with --rulepack and get JSON/Markdown reports (see Penguins demo below).
+>>>>>>> 19c716c (update README.md with Penguins example in Quickstart)
 > Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
 ```bash
@@ -78,9 +82,13 @@ jq '.attestation.submission_ready, (.findings | length)' out/report.json
 ```
 ---
 ## 🐧 Rulepacks Quickstart (Penguins demo)
+<<<<<<< HEAD
 
 Try `--rulepack` on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
 
+=======
+Try --rulepack on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
+>>>>>>> 19c716c (update README.md with Penguins example in Quickstart)
 ```bash
 # Create temp outputs
 mkdir -p .tmp
@@ -94,7 +102,10 @@ python -m fairy.cli.validate tests/fixtures/penguins_small.csv \
 # Inspect results
 cat .tmp/report.md
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 19c716c (update README.md with Penguins example in Quickstart)
 ```
 What this checks
 
