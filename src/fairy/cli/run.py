@@ -1,6 +1,3 @@
-# SPDX-License-Identifier: AGPL-3.0-only
-# Copyright (c) 2025 Jennifer Slotnick
-
 from __future__ import annotations
 
 import argparse
@@ -484,5 +481,5 @@ def demo_alias_main() -> int:
     return main(["validate", str(csv_path), "--out", old.out, "--kind", old.kind])
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
