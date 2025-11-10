@@ -12,6 +12,7 @@ Create/update golden snapshot files for FAIRy-core.
 
 Adjust DEFAULT_RULEPACK / DEFAULT_SAMPLES / DEFAULT_FILES if your paths differ.
 """
+
 import shutil
 import subprocess
 import sys

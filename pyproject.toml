@@ -24,7 +24,7 @@ dev = ["pytest","pytest-cov","freezegun", "ruff", "mypy", "build", "twine", "bla
 # ui lives elsewhere; don't include Streamlit here
 
 [project.scripts]
-fairy = "fairy.cli.run:main"
+fairy = "fairy.cli.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/yuummmer/fairy-core"

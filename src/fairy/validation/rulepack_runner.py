@@ -288,8 +288,7 @@ def _check_foreign_key(
             "FAIL",
             {
                 "error": "unknown_table",
-                "message": f"Have tables {sorted(frames.keys())}; "
-                f"need: {from_table}, {to_table}",
+                "message": f"Have tables {sorted(frames.keys())}; need: {from_table}, {to_table}",
             },
         )
 
@@ -332,12 +331,12 @@ def write_markdown(report: dict[str, Any]) -> str:
         "# FAIRy Validate Report",
         "",
         f"**Timestamp:** {ts}",
-        f"**Rulepack:** {rp.get('id','')}@{rp.get('version','')} ({rp.get('path','')})",
+        f"**Rulepack:** {rp.get('id', '')}@{rp.get('version', '')} ({rp.get('path', '')})",
         "",
         "## Summary",
-        f"- PASS: {report.get('summary',{}).get('pass',0)}",
-        f"- WARN: {report.get('summary',{}).get('warn',0)}",
-        f"- FAIL: {report.get('summary',{}).get('fail',0)}",
+        f"- PASS: {report.get('summary', {}).get('pass', 0)}",
+        f"- WARN: {report.get('summary', {}).get('warn', 0)}",
+        f"- FAIL: {report.get('summary', {}).get('fail', 0)}",
         "",
         "## Inputs",
     ]
@@ -350,19 +349,19 @@ def write_markdown(report: dict[str, Any]) -> str:
 
     out.append("")
     for res in sorted(report.get("resources", []), key=lambda r: r.get("path", "")):
-        out.append(f"## Findings for `{res.get('path','')}`")
+        out.append(f"## Findings for `{res.get('path', '')}`")
         for rr in sorted(res.get("rules", []), key=lambda r: r.get("id", "")):
             out.append(f"### [{rr.get('status')}] {rr.get('id')} — {rr.get('type')}")
             ev = rr.get("evidence", {})
             if "duplicates" in ev:
                 for d in ev["duplicates"]:
-                    out.append(f"Duplicates at rows {d.get('rows',[])}")
+                    out.append(f"Duplicates at rows {d.get('rows', [])}")
             if "out_of_set" in ev:
                 o = ev["out_of_set"]
-                out.append(f"Out of set rows {o.get('rows',[])} (count={o.get('count',0)})")
+                out.append(f"Out of set rows {o.get('rows', [])} (count={o.get('count', 0)})")
             if "out_of_bounds" in ev:
                 o = ev["out_of_bounds"]
-                out.append(f"Out of bounds rows {o.get('rows',[])} (count={o.get('count',0)})")
+                out.append(f"Out of bounds rows {o.get('rows', [])} (count={o.get('count', 0)})")
             if ev.get("normalized") is True:
                 out.append("Normalized comparison applied.")
             if "error" in ev:
