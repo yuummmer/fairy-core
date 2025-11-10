@@ -59,238 +59,87 @@ New: validate is now available alongside preflight — run custom rulepacks with
 > Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
 ```bash
-# 1) Install (editable)
-pip install -e .
+# 0) Python 3.10+
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 
-# 2) Check the CLI
-fairy --version
+# 1) Check CLI
+python -m fairy.cli --help
+python -m fairy.cli --version
 
-# 3) Run a preflight check (GEO bulk RNA-seq rulepack)
-fairy preflight \
+# 2) Preflight (GEO bulk RNA-seq; expects JSON rulepack)
+python -m fairy.cli preflight \
   --rulepack src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json \
-  --samples  /path/to/samples.tsv \
-  --files    /path/to/files.tsv \
-  --out      out/report.json
+  --samples demos/scratchrun/samples.tsv \
+  --files   demos/scratchrun/files.tsv \
+  --out     .tmp/report.json
+cat .tmp/report.md   # human summary
 
-# 4) Inspect the results
-jq '.attestation.submission_ready, (.findings | length)' out/report.json
+# 3) Rulepack loader (YAML schema validation only)
+python -m fairy.cli rulepack --rulepack demos/rulepacks/penguins.yml
+
 ```
+Compat still works: python -m fairy.cli.run ... and python -m fairy.cli run --mode rulepack ....
+
 ---
-## 🐧 Rulepacks Quickstart (Penguins demo)
-Try --rulepack on a tiny Palmer Penguins CSV and see JSON + Markdown reports.
-```bash
-# Create temp outputs
-mkdir -p .tmp
-
-# Run FAIRy with a demo rulepack (numeric ranges, enums, unique, dup)
-python -m fairy.cli.validate tests/fixtures/penguins_small.csv \
-  --rulepack demos/rulepacks/penguins.yml \
-  --report-json .tmp/report.json \
-  --report-md   .tmp/report.md || true
-
-# Inspect results
-cat .tmp/report.md
-
-```
-What this checks
-
-- dup (alias no_duplicate_rows): duplicate rows by composite keys
-- unique: uniqueness across one or more columns
-- enum: values must be in an allow-list (supports normalize: {trim, casefold})
-- range: numeric min/max (inclusive by default)
-
-What you'll see (excerpt)
-
-# FAIRy Validate Report
-
-**Timestamp:** 2025-11-07T20:12:34Z
-**Rulepack:** penguins-kata@0.1.0 (demos/rulepacks/penguins.yml)
-
-## Summary
-- PASS: 6
-- WARN: 3
-- FAIL: 1
-
-## Findings for `tests/fixtures/penguins_small.csv`
-### [FAIL] no_dups — no_duplicate_rows
-Duplicates at rows [7]
-
-### [WARN] bill_len_range — range
-Out of bounds rows [8,10] (count=2)
-
-
-YAML (excerpt)
+## 🐧 Rulepacks (YAML)
+Minimal shape
 ```yaml
-# demos/rulepacks/penguins.yml
-id: penguins-kata
-version: 0.1.0
-resources:
-  - pattern: "penguins*.csv"
-    rules:
-      - id: no_dups
-        type: no_duplicate_rows
-        keys: [species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year]
-        severity: fail
-      - id: species_enum
-        type: enum
-        column: species
-        allow: ["Adelie", "Chinstrap", "Gentoo"]
-        severity: fail
-      - id: bill_len_range
-        type: range
-        column: bill_length_mm
-        min: 30
-        max: 60
-        inclusive: true
-        severity: warn
+meta: { name: penguins-kata, version: "0.1.0", description: "Palmer Penguins checks" }
+rules:
+  - id: species_enum
+    type: enum
+    severity: fail
+    config: { column: species, allow: ["Adelie","Chinstrap","Gentoo"] }
+
+  - id: no_dups
+    type: no_duplicate_rows
+    severity: fail
+    config:
+      pattern: "penguins*.csv"
+      keys: [species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year]
+
+params: {}   # optional
 
 ```
-Outputs
-- .tmp/report.json — deterministic JSON (sorted keys)
-
-- .tmp/report.md — human-readable summary
-- Exit code: 1 if any rule FAILs; otherwise 0
- Dataset credit: tiny fixture derived from Palmer Penguins (CC0). Attribution appreciated: Horst, Hill & Gorman / Palmer Station LTER.
----
-## What you get
-
-- out/report.json — structured findings + attestation (includes dataset hashes, timing, FAIRy version)
-
-- (optional) report.md — friendly summary (see “Export bundle” below to generate it)
----
-
-## Export bundle (optional, one call)
-
-Generates report.json, report.md, copies your inputs, writes manifest.json and provenance.json, and zips the folder.
-```bash
-python - <<'PY'
-from pathlib import Path
-from fairy.core.services.export_adapter import export_submission
-res = export_submission(
-    project_dir=Path("."),  # outputs under ./exports/<timestamp>/
-    rulepack=Path("src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json"),
-    samples=Path("/path/to/samples.tsv"),
-    files=Path("/path/to/files.tsv"),
-)
-print("Export dir:", res.export_dir)
-print("Bundle zip:", res.zip_path)
-print("Report JSON:", res.report_path)
-print("Report MD:", res.report_md_path)
-PY
-
-```
-## Multi-input validation (--inputs name=path)
-Some datasets are split across multiple tables (e.g., artworks.csv + artists.csv). FAIRy can validate them in one run, enabling cross-table checks like foreign keys and lookups.
-
-#### Usage
-Option A - Single input
-```bash
-# single file (kept forever; maps to table name "default")
-fairy validate metadata.csv --rulepack rules.yaml --report-json out.json
-
-# folder containing CSVs (stems become table names)
-fairy validate data/ --rulepack rules.yaml --report-json out.json
-# e.g., data/artworks.csv → table "artworks", data/artists.csv → table "artists"
-
-```
-Option B - explicit multi-input
-```bash
-fairy validate \
-  --rulepack rules.yaml \
-  --inputs artworks=artworks.csv \
-  --inputs artists=artists.csv \
-  --report-json out.json
-
-```
-- repeat --inputs for each table you want to pass
-- table names are the keys (left side), file paths on the right.
-
-Rulepack example (cross-table FK)
-```yaml
-id: tate-art-collections
-version: 0.1.0
-
-resources:
-  - pattern: artworks.csv
-    rules:
-      - id: fk_artworks_artistId
-        type: foreign_key
-        severity: fail
-        from: { table: artworks, field: artistId }
-        to:   { table: artists,  field: artistId }
-
-```
-- from.table and to.table must match the names provided via --inputs (or folder systems).
-- if a rulepack refers to an unknown table, FAIRy raises a clear error and lists the provided tables.
-
 ### Reports
-- JSON/Markdown formats are unchanged
-- We append metadata.inputs (name to path) for provenance:
-```json
-{
-  "summary": { "pass": 1, "warn": 0, "fail": 0 },
-  "metadata": {
-    "inputs": {
-      "artworks": "tests/fixtures/art-collections/artworks_pass.csv",
-      "artists": "tests/fixtures/art-collections/artists.csv"
-    }
-  }
-}
-
-```
-Exit Codes
-- 0 when there are no FAIL findings
-- 1 when any rule emits FAIL (useful for CLI)
-
-### Examples
-Passing FK
-```bash
-fairy validate \
-  --rulepack tests/fixtures/art-collections/rulepack.yaml \
-  --inputs artworks=tests/fixtures/art-collections/artworks_pass.csv \
-  --inputs artists=tests/fixtures/art-collections/artists.csv \
-  --report-json out_pass.json
-# exit 0
-```
-Failing FK
-```bash
-fairy validate \
-  --rulepack tests/fixtures/art-collections/rulepack.yaml \
-  --inputs artworks=tests/fixtures/art-collections/artworks_fail_missing_artist.csv \
-  --inputs artists=tests/fixtures/art-collections/artists.csv \
-  --report-json out_fail.json
-# exit 1
-
-```
-### Notes and back compatibility
-- Positional single-input is kept forever
-    - File → table name default.
-    - Folder → each *.csv becomes a table named by its stem
-- Duplicate --inputs name: last one wins (a warning is logged)
-- Large datasets: FAIRy caches loaded tables by name during a run.
+- JSON: structured findings + attestation (hashes, timestamps, versions)
+- Markdown: curator-friendly one-pager
+- Exit: 0 if no FAIL, else 1
 ---
 
-## Tests
+## Development
 ```bash
+# Tests (coverage scoped to cli + rulepack)
 pytest -q
+
+# Lint/format
+ruff check . --fix
+ruff format .
+
 ```
+- Coverage config: .coveragerc, pytest.ini
+- Demo fixtures: tests/fixtures/*, demos/
 ---
 
 ## Repo layout
 ```bash
 src/fairy/
-  cli/                  # CLI entrypoints (e.g., validate, preflight)
-  core/                 # services, models, validators, exporters
-  validation/           # rulepack runner + checks (MVP lives here)
-  rulepacks/            # repository-specific rulepacks (CC0-1.0)
-schemas/                # JSON Schemas for reports, etc.
-demos/
-  rulepacks/            # demo rulepacks (not shipped in wheels)
-tests/
-  fixtures/             # tiny CSVs & local rulepacks for tests
-  golden/               # deterministic expected reports (optional)
+  cli/         # CLI entrypoints (validate, preflight, rulepack)
+  core/        # services/models/validators (evolving)
+  rulepack/    # loader + schema (YAML)
+  rulepacks/   # packaged rulepacks (CC0)
+demos/         # demo rulepacks / scratch data (not shipped)
+tests/         # unit + smoke tests
 
 ```
+---
+## Want a longer guide?
+Multi-input CLI, cross-table checks, export bundle, and troubleshooting live in docs/:
+- docs/multi-input.md
+- docs/export-bundle.md
+- docs/troubleshooting.md
+
 ---
 
 ## Licensing

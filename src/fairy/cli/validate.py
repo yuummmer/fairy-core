@@ -114,8 +114,7 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         "validate",
         help="Validate dataset(s) against a rulepack",
         description=(
-            "Use a single positional INPUT (legacy) or repeat\n"
-            "--inputs name=path for multi-input."
+            "Use a single positional INPUT (legacy) or repeat\n--inputs name=path for multi-input."
         ),
     )
     p.add_argument("input", nargs="?", help="CSV file or folder containing CSVs (legacy)")

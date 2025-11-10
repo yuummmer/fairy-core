@@ -1,0 +1,10 @@
+meta:
+  name: penguins-mini
+  version: "0.1.0"
+  description: Minimal rulepack for smoke testing.
+rules:
+  - id: ping
+    type: always_pass
+    message: just a ping
+params:
+  threshold: 0.95
