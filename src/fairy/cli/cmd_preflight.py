@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from ..core.services.validator import run_rulepack
+from .common import ParamsFileError, load_params_file
 from .output_md import emit_preflight_markdown
 
 # Pull FAIRy version text if you want to embed it later; keep simple for now
@@ -24,6 +25,13 @@ def add_subparser(sub):
     pf.add_argument("--files", type=Path, required=True)
     pf.add_argument("--out", type=Path, required=True)
     pf.add_argument("--fairy-version", default=FAIRY_VERSION)
+    pf.add_argument(
+        "--param-file",
+        dest="param_file",
+        type=Path,
+        metavar="PATH",
+        help="Path to a YAML file with tunable parameters injected into ctx['params']",
+    )
     pf.set_defaults(func=main)
 
 
@@ -43,11 +51,19 @@ def _save_last_codes(cache_path: Path, codes: set[str]) -> None:
 
 
 def main(args) -> int:
+    # NEW: load params (args.param_file is a Path or None)
+    try:
+        params = load_params_file(str(args.param_file) if args.param_file else None)
+    except ParamsFileError as e:
+        print(str(e))
+        return 2
+
     report = run_rulepack(
         rulepack_path=args.rulepack.resolve(),
         samples_path=args.samples.resolve(),
         files_path=args.files.resolve(),
         fairy_version=args.fairy_version,
+        params=params,
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
