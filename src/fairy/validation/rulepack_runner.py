@@ -1,6 +1,8 @@
 # src/fairy/validate/rulepack_runner.py
 from __future__ import annotations
 
+import re
+from fnmatch import fnmatch
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -8,7 +10,56 @@ from typing import Any
 import pandas as pd
 
 # Accept both names for the row-duplicates rule (+ foreign_key for multi-input)
-CHECK_TYPES = {"dup", "unique", "enum", "range", "no_duplicate_rows", "foreign_key"}
+CHECK_TYPES = {
+    "dup",
+    "unique",
+    "enum",
+    "range",
+    "no_duplicate_rows",
+    "foreign_key",
+    "required",
+    "url",
+    "non_empty_trimmed",
+}
+
+
+def _extract_meta(rulepack: dict) -> tuple[str, str]:
+    # New schema (id/version at top-level)
+    if isinstance(rulepack, dict) and ("id" in rulepack or "version" in rulepack):
+        return rulepack.get("id", "") or "", rulepack.get("version", "") or ""
+    # Old schema (meta.name/meta.version)
+    meta = rulepack.get("meta", {}) if isinstance(rulepack, dict) else {}
+    rid = meta.get("name") or meta.get("id") or ""
+    rver = meta.get("version") or ""
+    return rid, rver
+
+
+def _normalize_old_rule(rule: dict) -> dict:
+    """Flatten old-schema rule so access is uniform (id/type/severity + params + _pattern)."""
+    cfg = rule.get("config", {}) or {}
+    out = {
+        "id": rule.get("id", "") or "",
+        "type": (rule.get("type", "") or "").strip(),
+        "severity": (rule.get("severity", "fail") or "fail").lower(),
+        "_pattern": cfg.get("pattern", "") or "",
+    }
+    for k, v in cfg.items():
+        if k != "pattern":
+            out[k] = v
+    return out
+
+
+def _old_schema_applicable_rules(rules: list[dict], path: Path) -> list[dict]:
+    name = path.name
+    acc: list[dict] = []
+    for r in rules or []:
+        rr = _normalize_old_rule(r)
+        pat = rr.get("_pattern", "")
+        if not pat:
+            continue
+        if ("*" in pat and fnmatch(name, pat)) or (name == pat):
+            acc.append(rr)
+    return acc
 
 
 def _sha256(path: Path) -> str:
@@ -41,9 +92,12 @@ def run_rulepack(
       - legacy single-file mode: {"default": <file>}
       - folder/explicit multi:   {"artworks": <path>, "artists": <path>, ...}
     """
-    rp_id = rulepack.get("id", "")
-    rp_ver = rulepack.get("version", "")
-    resources_spec = rulepack.get("resources", []) or []
+    # ---- Read meta from either schema
+    rp_id, rp_ver = _extract_meta(rulepack)
+
+    # Schema branches (new vs old)
+    new_resources = (rulepack.get("resources") or []) if isinstance(rulepack, dict) else []
+    old_rules = (rulepack.get("rules") or []) if isinstance(rulepack, dict) else []
 
     # ---- Load all inputs once (enables cross-table checks)
     frames: dict[str, pd.DataFrame] = {}
@@ -78,16 +132,17 @@ def run_rulepack(
         "resources": [],
     }
 
-    # ---- Per-resource rules, matched by resource.pattern against file name
+    # ---- Per-resource rules (match by pattern against filename)
     for name, path in inputs_map.items():
         applicable: list[dict[str, Any]] = []
-        for res in resources_spec:
-            pat = res.get("pattern")
-            if pat and _resource_matches(pat, path):
-                applicable.extend(res.get("rules", []) or [])
 
-        if not applicable:
-            continue
+        if new_resources:
+            for res in new_resources:
+                pat = res.get("pattern")
+                if pat and _resource_matches(pat, path):
+                    applicable.extend(res.get("rules", []) or [])
+        elif old_rules:
+            applicable.extend(_old_schema_applicable_rules(old_rules, path))
 
         df = frames[name]
         resource_rules: list[dict[str, Any]] = []
@@ -106,22 +161,25 @@ def run_rulepack(
                     if rtype in ("dup", "no_duplicate_rows"):
                         keys = r.get("keys", [])
                         status, evidence = check_dup(df, keys, severity)
+
                     elif rtype == "unique":
                         cols = r.get("columns", [])
                         status, evidence = check_unique(df, cols, severity)
+
                     elif rtype == "enum":
                         col = r.get("column")
                         allow = r.get("allow", [])
                         normalize = r.get("normalize", {}) or {}
                         status, evidence = check_enum(df, col, allow, normalize, severity)
+
                     elif rtype == "range":
                         col = r.get("column")
                         mn = r.get("min", None)
                         mx = r.get("max", None)
                         inclusive = bool(r.get("inclusive", True))
                         status, evidence = check_range(df, col, mn, mx, inclusive, severity)
+
                     elif rtype == "foreign_key":
-                        # Simple cross-table FK presence check
                         frm = r.get("from", {}) or {}
                         to = r.get("to", {}) or {}
                         status, evidence = _check_foreign_key(
@@ -132,6 +190,20 @@ def run_rulepack(
                             to_field=to.get("field", ""),
                             severity=severity,
                         )
+
+                    elif rtype == "required":
+                        cols = r.get("columns", []) or r.get("cols", [])
+                        status, evidence = check_required(df, cols, severity)
+
+                    elif rtype == "url":
+                        col = r.get("column")
+                        schemes = r.get("scheme", None)
+                        status, evidence = check_url(df, col, schemes, severity)
+
+                    elif rtype == "non_empty_trimmed":
+                        col = r.get("column")
+                        status, evidence = check_non_empty_trimmed(df, col, severity)
+
                 except Exception as e:
                     status, evidence = "FAIL", {"error": "runtime_error", "message": str(e)}
 
@@ -153,7 +225,7 @@ def run_rulepack(
             else:
                 report["summary"]["pass"] += 1
 
-        # attach resource block (keep 'path' for MD writer compatibility)
+        # Always append a resource block for this input (even if no rules matched)
         res_block = {"name": name, "path": str(path), "rules": resource_rules}
         report["resources"].append(res_block)
 
@@ -315,6 +387,101 @@ def _check_foreign_key(
             "missing_count_estimate": len(missing),
             "from": {"table": from_table, "field": from_field},
             "to": {"table": to_table, "field": to_field},
+        }
+    return "PASS", {"count": 0}
+
+
+def _rows_sorted_1based(idx_like) -> list[int]:
+    return [int(i) + 1 for i in sorted(map(int, idx_like))]
+
+
+def check_required(
+    df: pd.DataFrame, columns: list[str], severity: str
+) -> tuple[str, dict[str, Any]]:
+    if not columns:
+        return "FAIL", {"error": "config_missing_columns"}
+    missing_cols = [c for c in columns if c not in df.columns]
+    ev: dict[str, Any] = {}
+    if missing_cols:
+        ev["missing_columns"] = sorted(missing_cols)
+
+    present = [c for c in columns if c in df.columns]
+    nullish_rows: dict[str, list[int]] = {}
+    for c in present:
+        # empty after trim OR NaN
+        s = df[c]
+        mask = s.isna() | s.astype(str).str.strip().eq("")
+        if mask.any():
+            nullish_rows[c] = _rows_sorted_1based(df.index[mask].tolist())
+
+    if nullish_rows:
+        ev["nullish"] = {
+            "columns": sorted(nullish_rows.keys()),
+            "rows_by_column": {k: v for k, v in sorted(nullish_rows.items())},
+        }
+        # Count of cells flagged (flat cell count)
+        # Row-level counts are fine too; cell count is more informative here.
+        ev["count"] = int(sum(len(v) for v in nullish_rows.values()))
+
+    if ev:
+        return _status_from_severity(severity), ev
+    return "PASS", {"count": 0}
+
+
+_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
+
+
+def _url_syntax_ok(val: Any, schemes: set[str]) -> bool:
+    if pd.isna(val):
+        return True  # treat NA as not-a-violation; you can change later if desired
+    try:
+        s = str(val)
+    except Exception:
+        return False
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(s)
+    if not parts.scheme or not _SCHEME_RE.match(parts.scheme):
+        return False
+    if schemes and parts.scheme not in schemes:
+        return False
+    return bool(parts.netloc or parts.path)
+
+
+def check_url(
+    df: pd.DataFrame, column: str, schemes: list[str] | None, severity: str
+) -> tuple[str, dict[str, Any]]:
+    if not column:
+        return "FAIL", {"error": "config_missing_column"}
+    if column not in df.columns:
+        return "FAIL", {"error": "column_not_found", "column": column}
+    allow = set(schemes or ["http", "https"])
+    s = df[column]
+    bad_mask = ~s.apply(lambda v: _url_syntax_ok(v, allow))
+    if bad_mask.any():
+        rows = _rows_sorted_1based(df.index[bad_mask].tolist())
+        return _status_from_severity(severity), {
+            "invalid_url_rows": rows,
+            "count": len(rows),
+            "schemes": sorted(allow),
+        }
+    return "PASS", {"count": 0}
+
+
+def check_non_empty_trimmed(
+    df: pd.DataFrame, column: str, severity: str
+) -> tuple[str, dict[str, Any]]:
+    if not column:
+        return "FAIL", {"error": "config_missing_column"}
+    if column not in df.columns:
+        return "FAIL", {"error": "column_not_found", "column": column}
+    s = df[column].astype("string")
+    bad_mask = s.isna() | (s.str.strip().str.len() == 0)
+    if bad_mask.any():
+        rows = _rows_sorted_1based(df.index[bad_mask].tolist())
+        return _status_from_severity(severity), {
+            "empty_or_whitespace_rows": rows,
+            "count": len(rows),
         }
     return "PASS", {"count": 0}
 
