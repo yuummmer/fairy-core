@@ -1,11 +1,49 @@
-# tests/fixtures/art-collections/rulepack.yaml
-id: tate-art-collections
-version: 0.1.0
+id: art-collections
+version: 0.2.2
+description: Kata rulepack with FK + basic checks aligned to fixture headers
+
 resources:
-  - pattern: artworks_*.csv   # <-- wildcard so pass/fail fixtures both match
+  - pattern: "artists.csv"
     rules:
-      - id: fk_artworks_artistId
+      - id: artists_required
+        type: required
+        severity: fail
+        columns: ["artistId", "artistName"]
+
+      - id: artists_unique_id
+        type: unique
+        severity: fail
+        columns: ["artistId"]
+
+      - id: artists_name_non_empty
+        type: non_empty_trimmed
+        severity: warn
+        column: artistName
+
+  - pattern: "artworks_*.csv"
+    rules:
+      - id: artworks_required
+        type: required
+        severity: fail
+        columns: ["id", "title", "artistId"]
+
+      - id: artworks_unique_id
+        type: unique
+        severity: fail
+        columns: ["id"]
+
+      - id: artworks_title_non_empty
+        type: non_empty_trimmed
+        severity: warn
+        column: title
+
+      - id: artworks_artist_fk
         type: foreign_key
         severity: fail
         from: { table: artworks, field: artistId }
         to:   { table: artists,  field: artistId }
+
+      - id: artworks_no_duplicate_rows
+        type: no_duplicate_rows
+        severity: fail
+        keys: ["id", "title", "artistId"]

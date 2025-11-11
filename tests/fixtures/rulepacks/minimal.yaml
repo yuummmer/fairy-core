@@ -1,10 +1,66 @@
 meta:
-  name: penguins-mini
-  version: "0.1.0"
-  description: Minimal rulepack for smoke testing.
+  name: minimal
+  version: 0.2.0
+  description: Minimal smoke rulepack
+
 rules:
-  - id: ping
-    type: always_pass
-    message: just a ping
-params:
-  threshold: 0.95
+  - id: req_artists
+    type: required
+    severity: fail
+    config:
+      pattern: "artists.csv"
+      columns: ["id","name","homepage"]
+
+  - id: uniq_artist_id
+    type: unique
+    severity: fail
+    config:
+      pattern: "artists.csv"
+      columns: ["id"]
+
+  - id: homepage_urls
+    type: url
+    severity: warn
+    config:
+      pattern: "artists.csv"
+      column: homepage
+      schemes: ["http","https"]
+
+  - id: artworks_required
+    type: required
+    severity: fail
+    config:
+      pattern: "artworks_*.csv"
+      columns: ["id","title","artist_id","price","currency"]
+
+  - id: title_non_empty
+    type: non_empty_trimmed
+    severity: warn
+    config:
+      pattern: "artworks_*.csv"
+      column: title
+
+  - id: price_range
+    type: range
+    severity: fail
+    config:
+      pattern: "artworks_*.csv"
+      column: price
+      min: 0
+      inclusive: true
+
+  - id: currency_enum
+    type: enum
+    severity: warn
+    config:
+      pattern: "artworks_*.csv"
+      column: currency
+      allow: ["USD","EUR"]
+
+  - id: artist_fk
+    type: foreign_key
+    severity: fail
+    config:
+      pattern: "artworks_*.csv"
+      from: { table: artworks, field: artist_id }
+      to:   { table: artists,  field: id }
