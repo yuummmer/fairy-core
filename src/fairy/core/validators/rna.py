@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2025 Jennifer Slotnick
+from __future__ import annotations
 
 import re
+from typing import Any
 
 import pandas as pd
 
@@ -35,14 +37,17 @@ class RNAValidator:
 
 
 register("rna", RNAValidator())
-
-
 #
 # === helpers used by 'validate' and 'preflight'
 #
 
 
-def check_required_columns(df: pd.DataFrame, required_cols: list[str]) -> list[WarningItem]:
+def check_required_columns(
+    df: pd.DataFrame,
+    required_cols: list[str],
+    ctx: dict[str, Any] | None = None,
+) -> list[WarningItem]:
+    _params = (ctx or {}).get("params", {}) or {}
     """
     Spec: rule['check']['type'] == 'require_columns'
           rule['check']['required_columns'] = [...]
@@ -114,7 +119,11 @@ def check_read_length(df: pd.DataFrame, col: str) -> list[WarningItem]:
 #
 
 
-def check_bio_context(df: pd.DataFrame, biological_context_cols: list[str]) -> list[WarningItem]:
+def check_bio_context(
+    df: pd.DataFrame,
+    biological_context_cols: list[str],
+    ctx: dict[str, Any] | None = None,
+) -> list[WarningItem]:
     """
     Spec: type == 'at_least_one_nonempty_per_row'
           spec['column_groups'][0] = ["tissue", "cell_line", "cell_type", ...]
@@ -152,7 +161,8 @@ def check_id_crossmatch(
     samples_df: pd.DataFrame,
     files_df: pd.DataFrame,
     *,
-    samples_key: str,
+    samples_key: str = "sample_id",
+    ctx: dict[str, Any] | None = None,
 ) -> list[WarningItem]:
     """
     Spec: type == 'id_crosscheck'
@@ -204,12 +214,13 @@ def check_id_crossmatch(
 def check_paired_end_complete(
     files_df: pd.DataFrame,
     *,
-    samples_key: str,
-    layout_col: str,
-    paired_value: str,
-    file_col: str,
-    r1_pattern: str,
-    r2_pattern: str,
+    samples_key: str = "sample_id",
+    layout_col: str = "layout",
+    paired_value: str = "PAIRED",
+    file_col: str = "filename",
+    r1_pattern: str = r"_R1",
+    r2_pattern: str = r"_R2",
+    ctx: dict[str, Any] | None = None,
 ) -> list[WarningItem]:
     """
     Spec: type == 'paired_end_complete'
@@ -264,6 +275,7 @@ def check_paired_end_complete(
 def check_dates_iso8601(
     df: pd.DataFrame,
     date_cols: list[str],
+    ctx: dict[str, Any] | None = None,
 ) -> list[WarningItem]:
     """
     Spec: type == 'dates_are_iso8601'
@@ -299,9 +311,10 @@ def check_dates_iso8601(
 def check_processed_data_present(
     files_df: pd.DataFrame,
     *,
-    samples_key: str,
-    raw_file_glob: str,
-    processed_globs: list[str],
+    samples_key: str = "sample_id",
+    raw_file_glob: str = ".fastq",
+    processed_globs: list[str] | tuple[str, ...] = (".counts", ".quant", ".gene_counts"),
+    ctx: dict[str, Any] | None = None,
 ) -> list[WarningItem]:
     """
     Spec: type == 'processed_data_present'

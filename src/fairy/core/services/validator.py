@@ -144,7 +144,12 @@ def run_rulepack(
     samples_path: Path,
     files_path: Path,
     fairy_version: str = "0.2.0",
+    params: dict[str, Any] | None = None,
 ) -> dict:
+
+    # ---NEW: context injected for rule functions
+    ctx: dict[str, Any] = {"params": params or {}}
+
     # 1. load rulepack JSON
     pack = json.loads(Path(rulepack_path).read_text())
 
@@ -161,13 +166,13 @@ def run_rulepack(
         # dispatch to the right helper in rna.py
         if ctype == "require_columns":
             required_cols = spec.get("required_columns", [])
-            warning_items = rna.check_required_columns(samples_df, required_cols)
+            warning_items = rna.check_required_columns(samples_df, required_cols, ctx=ctx)
 
         elif ctype == "at_least_one_nonempty_per_row":
             # spec["column_groups"] is like [["tissue","cell_line","cell_type"]]
             column_groups = spec.get("column_groups", [])
             group0 = column_groups[0] if column_groups else []
-            warning_items = rna.check_bio_context(samples_df, group0)
+            warning_items = rna.check_bio_context(samples_df, group0, ctx=ctx)
 
         elif ctype == "id_crosscheck":
             # left_key is the sample ID key in samples.tsv
@@ -176,6 +181,7 @@ def run_rulepack(
                 samples_df,
                 files_df,
                 samples_key=left_key,
+                ctx=ctx,
             )
 
         elif ctype == "paired_end_complete":
@@ -188,6 +194,7 @@ def run_rulepack(
                 file_col=spec.get("file_column", "filename"),
                 r1_pattern=spec.get("r1_pattern", r"_R1"),
                 r2_pattern=spec.get("r2_pattern", r"_R2"),
+                ctx=ctx,
             )
 
         elif ctype == "dates_are_iso8601":
@@ -203,6 +210,7 @@ def run_rulepack(
                     "processed_glob_candidates",
                     [".counts", ".quant", ".gene_counts"],
                 ),
+                ctx=ctx,
             )
 
         else:
