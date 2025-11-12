@@ -49,3 +49,6 @@ repo-tree.txt
 PR_DESCRIPTION.md
 SHIP_CHECKLIST.md
 tasks/tasks-*.md
+
+# local docs
+PR_SUBMISSION_GUIDE.md
