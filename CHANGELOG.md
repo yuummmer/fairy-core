@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-11
+
+### Added
+- **Preflight report schema v1.0.0**: Stable JSON schema for `fairy preflight` reports with deterministic ordering
+  - New top-level fields: `schema_version`, `generated_at`, `dataset_id`, `metadata`, `summary`, `results`
+  - `metadata.inputs`: Full provenance for all input files (path, sha256, n_rows, n_cols, header)
+  - `metadata.rulepack`: Rulepack provenance (path, sha256, id, version, params_sha256)
+  - `summary.by_level`: Counts by level (pass, warn, fail)
+  - `summary.by_rule`: Rule ID → level mapping with fail > warn > pass precedence
+  - `results`: Array of rule results with `rule`, `level`, `count`, and `samples` (up to 10 per rule)
+  - JSON Schema validation: `schemas/preflight_report_v1.schema.json`
+  - Golden test support with fixed timestamps for reproducible snapshots
+- Documentation: `docs/reporting.md` with schema reference, examples, and migration guide
+
+### Changed
+- **BREAKING**: Preflight report structure changed from legacy format to v1.0.0 schema
+  - Old → New field mapping:
+    - `attestation.run_at_utc` → `generated_at` (ISO-8601 UTC with 'Z' suffix)
+    - `attestation.inputs` → `metadata.inputs` (full metadata objects)
+    - `findings` → `results` (rule-level results with samples)
+    - `attestation.fail_count` → `summary.by_level.fail`
+    - `attestation.warn_count` → `summary.by_level.warn`
+  - Legacy structure preserved in `_legacy` field for backward compatibility (deprecated, will be removed in v1.2.0)
+- Deterministic report ordering: All arrays and object keys are sorted for reproducibility
+- `dataset_id`: Now computed as aggregate SHA-256 hash across all inputs
+
+### Backward Compatibility
+- Legacy report structure (`attestation` + `findings`) available in `_legacy` field
+- `_legacy` field will be removed in v1.2.0 (or after 2 releases)
+- CLI and markdown generation updated to use new v1 structure
+
+## [Unreleased]
+
 ### Added
 - `feat(validate)`: add `--rulepack` runner supporting `dup` (alias `no_duplicate_rows`), `unique`, `enum`, and `range` checks; JSON/MD writers; 1-based indices; exit code `1` on any FAIL. Demo rulepack: Penguins.
 - `feat(validate)`: **multi-input** support via repeatable `--inputs name=path` pairs (e.g., `--inputs artworks=artworks.csv --inputs artists=artists.csv`).

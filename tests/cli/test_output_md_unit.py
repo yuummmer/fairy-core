@@ -28,8 +28,20 @@ def test_emit_preflight_markdown_creates_file(tmp_path: Path):
         "warn_count": 0,
         "inputs": {"samples": {}, "files": {}},
     }
-    report = {"findings": []}
-    emit_preflight_markdown(md, att, report, resolved_codes=[], prior_codes=None)
+    # New signature: emit_preflight_markdown(md_path, report, resolved_codes, prior_codes)
+    report = {
+        "schema_version": "1.0.0",
+        "generated_at": "2025-01-01T00:00:00Z",
+        "dataset_id": "sha256:" + "0" * 64,
+        "metadata": {
+            "inputs": {"samples": {}, "files": {}},
+            "rulepack": {"path": "/test", "sha256": "0" * 64},
+        },
+        "summary": {"by_level": {"pass": 0, "warn": 0, "fail": 0}, "by_rule": {}},
+        "results": [],
+        "_legacy": {"attestation": att, "findings": []},
+    }
+    emit_preflight_markdown(md, report, resolved_codes=[], prior_codes=None)
     assert md.exists()
     txt = md.read_text()
     assert "FAIRy Preflight Report" in txt

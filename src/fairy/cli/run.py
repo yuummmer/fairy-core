@@ -200,124 +200,8 @@ def _save_last_codes(cache_path: Path, codes: set[str]) -> None:
     )
 
 
-def _emit_preflight_markdown(
-    md_path: Path,
-    att: dict,
-    report: dict,
-    resolved_codes: list[str],
-    prior_codes: set[str] | None,
-) -> None:
-    """
-    Write a curator-facing one-pager in Markdown that mirrors the CLI output.
-    """
-
-    inputs = att.get("inputs", {})
-    samples_info = inputs.get("samples", {})
-    files_info = inputs.get("files", {})
-
-    def _fmt_input_block(label: str, meta: dict) -> list[str]:
-        if not meta:
-            return [f"### {label}", "", "_no input metadata_", ""]
-        return [
-            f"### {label}",
-            "",
-            f"- path: '{meta.get('path', '?')}'",
-            f"- sha256: '{meta.get('sha256', '?')}'",
-            f"- rows: '{meta.get('n_rows', '?')}'",
-            f"- cols: '{meta.get('n_cols', '?')}'",
-            "",
-        ]
-
-    # summarize active codes
-    fail_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "FAIL"})
-    warn_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "WARN"})
-
-    # Build findings table rows
-    # One row per finding, so curator can see all issues
-    table_lines = [
-        "| Severity | Code | Location | Why it matters | How to fix |",
-        "|----------|------|----------|----------------|------------|",
-    ]
-    for f in report["findings"]:
-        sev = f.get("severity", "?")
-        code = f.get("code", "?")
-        where = f.get("where", "").replace("|", r"\|")
-        why = f.get("why", "").replace("|", r"\|")
-        fix = f.get("how_to_fix", "").replace("|", r"\|")
-        table_lines.append(f"| {sev} | {code} | {where} | {why} | {fix} |")
-
-    # Resolved since last run block
-    if prior_codes is None:
-        resolved_block = ["_No baseline from prior run (first run or cache missing)._"]
-    elif not resolved_codes:
-        resolved_block = ["_No previously-reported issues resolved._"]
-    else:
-        resolved_block = [f" -✅ {code}" for code in resolved_codes]
-
-    # Compose markdown doc
-    lines: list[str] = []
-
-    # Title / high-level summary
-    lines += [
-        "# FAIRy Preflight Report",
-        "",
-        f"- **Rulepack:** {att['rulepack_id']}@{att['rulepack_version']}",
-        f"- **FAIRy version:** {att['fairy_version']}",
-        f"- **Run at (UTC):** {att['run_at_utc']}",
-        f"- **submission_ready:** `{att['submission_ready']}`",
-        "",
-        "## Summary",
-        "",
-        f"- FAIL findings: {att['fail_count']} {fail_codes}",
-        f"- WARN findings: {att['warn_count']} {warn_codes}",
-        "",
-        "If `submission_ready` is `True`, FAIRy believes this dataset is ready to submit.",
-        "",
-        "---",
-        "",
-        "## Input provenance",
-        "",
-        "These hashes and dimensions identify the exact files that FAIRy validated.",
-        "You can hand this block to a curator or PI as evidence of what was checked.",
-        "",
-    ]
-
-    lines += _fmt_input_block("samples.tsv", samples_info)
-    lines += _fmt_input_block("files.tsv", files_info)
-
-    lines += [
-        "---",
-        "",
-        "## Findings (all current issues)",
-        "",
-        "Severity `FAIL` means “must fix before submission.”",
-        "Severity `WARN` means “soft violation / likely curator feedback.”",
-        "",
-    ]
-
-    # only include table if there are findings
-    if report["findings"]:
-        lines += table_lines
-        lines += [""]  # newline after table
-    else:
-        lines += [
-            "_No findings._",
-            "",
-        ]
-
-    lines += [
-        "---",
-        "",
-        "## Resolved since last run",
-        "",
-    ]
-    if resolved_block:
-        lines += resolved_block
-    lines += [""]
-
-    # Write file
-    md_path.parent.mkdir(parents=True, exist_ok=True)
-    md_path.write_text("\n".join(lines), encoding="utf-8")
+# _emit_preflight_markdown is now in output_md.py - import it if needed
+# Keeping this comment for reference, but we use output_md.emit_preflight_markdown now
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -343,20 +227,27 @@ def main(argv: list[str] | None = None) -> int:
             fairy_version=args.fairy_version,
         )
 
-        # Write machine-readable FAIRy report (attestation + findings)
+        # Write machine-readable FAIRy report (v1 structure)
         args.out.parent.mkdir(parents=True, exist_ok=True)
+        # Use sort_keys=True for deterministic JSON output
         args.out.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2),
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
             encoding="utf-8",
         )
 
-        att = report["attestation"]
+        # Extract data from new v1 structure
+        metadata = report["metadata"]
+        summary = report["summary"]
+        results = report["results"]
+
+        # For backward compatibility during migration, also check _legacy
+        legacy_att = report.get("_legacy", {}).get("attestation")
 
         # where we cache last-run codes
         cache_path = args.out.parent / ".fairy_last_run.json"
 
-        # Build set of current codes
-        curr_codes = {f["code"] for f in report["findings"]}
+        # Extract rule codes from results (rule field)
+        curr_codes = {r["rule"] for r in results}
 
         # Load previous run's codes (if any)
         prior_codes = _load_last_codes(cache_path)
@@ -370,10 +261,12 @@ def main(argv: list[str] | None = None) -> int:
         _save_last_codes(cache_path, curr_codes)
 
         # Emit curator-facing Markdown one-pager
+        # Use the updated function from output_md.py
+        from .output_md import emit_preflight_markdown
+
         md_path = args.out.with_suffix(".md")
-        _emit_preflight_markdown(
+        emit_preflight_markdown(
             md_path=md_path,
-            att=att,
             report=report,
             resolved_codes=resolved_codes,
             prior_codes=prior_codes,
@@ -382,22 +275,41 @@ def main(argv: list[str] | None = None) -> int:
         # === Pretty console summary for humans / screenshots / CI logs
         print("")
         print("=== FAIRy Preflight ===")
-        print(f"Rulepack:         {att['rulepack_id']}@{att['rulepack_version']}")
-        print(f"FAIRy version:    {att['fairy_version']}")
-        print(f"Run at (UTC):     {att['run_at_utc']}")
 
-        fail_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "FAIL"})
-        warn_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "WARN"})
+        # Extract rulepack info from metadata.rulepack
+        rulepack_meta = metadata.get("rulepack", {})
+        rulepack_id = rulepack_meta.get("id", "UNKNOWN_RULEPACK")
+        rulepack_version = rulepack_meta.get("version", "0.0.0")
 
-        print(f"FAIL findings:    {att['fail_count']} {fail_codes}")
-        print(f"WARN findings:    {att['warn_count']} {warn_codes}")
+        # FAIRy version from legacy attestation if available, otherwise use default
+        fairy_version = (
+            legacy_att.get("fairy_version", args.fairy_version)
+            if legacy_att
+            else args.fairy_version
+        )
 
-        print(f"submission_ready: {att['submission_ready']}")
+        print(f"Rulepack:         {rulepack_id}@{rulepack_version}")
+        print(f"FAIRy version:    {fairy_version}")
+        print(f"Generated at:     {report['generated_at']}")
+
+        # Extract fail/warn codes from results
+        fail_codes = sorted({r["rule"] for r in results if r["level"] == "fail"})
+        warn_codes = sorted({r["rule"] for r in results if r["level"] == "warn"})
+
+        # Get counts from summary
+        by_level = summary.get("by_level", {})
+        fail_count = by_level.get("fail", 0)
+        warn_count = by_level.get("warn", 0)
+        submission_ready = fail_count == 0
+
+        print(f"FAIL findings:    {fail_count} {fail_codes}")
+        print(f"WARN findings:    {warn_count} {warn_codes}")
+        print(f"submission_ready: {submission_ready}")
         print(f"Report JSON:      {args.out}")
         print("")
 
-        # show file provenance for trust / auditability
-        inputs = att.get("inputs", {})
+        # Extract inputs from metadata.inputs
+        inputs = metadata.get("inputs", {})
         samples_info = inputs.get("samples", {})
         files_info = inputs.get("files", {})
 
@@ -415,12 +327,23 @@ def main(argv: list[str] | None = None) -> int:
         print(_fmt_file_info("files.tsv", files_info))
         print("")
 
-        if report["findings"]:
-            f0 = report["findings"][0]
-            print("Example finding:")
-            print(f"  [{f0['severity']}] {f0['code']} @ {f0['where']}")
-            print(f"    why: {f0['why']}")
-            print(f"    fix: {f0['how_to_fix']}")
+        # Show example result if available
+        fail_results = [r for r in results if r["level"] == "fail"]
+        if fail_results:
+            r0 = fail_results[0]
+            print("Example result:")
+            print(f"  [{r0['level']}] {r0['rule']} (count: {r0['count']})")
+            if r0.get("samples"):
+                s0 = r0["samples"][0]
+                location_parts = []
+                if s0.get("row"):
+                    location_parts.append(f"row {s0['row']}")
+                if s0.get("column"):
+                    location_parts.append(f"column '{s0['column']}'")
+                if location_parts:
+                    print(f"    location: {', '.join(location_parts)}")
+                if s0.get("message"):
+                    print(f"    message: {s0['message']}")
             print("")
 
         # Print resolved diff block
@@ -438,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
         # Exit code for automation / CI:
         # - submission_ready == False (at least one FAIL) -> exit 1
         # - otherwise 0
-        exit_code = 0 if att["submission_ready"] else 1
+        exit_code = 0 if submission_ready else 1
         return exit_code
 
     # no command -> help

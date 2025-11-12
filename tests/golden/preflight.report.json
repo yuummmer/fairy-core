@@ -1,18 +1,63 @@
 {
-  "attestation": {
-    "rulepack_id": "GEO-SEQ-BULK",
-    "rulepack_version": "0.1.0",
-    "fairy_version": "0.1.0",
-    "run_at_utc": "2025-11-06T04:35:45.736817+00:00",
-    "submission_ready": false,
-    "fail_count": 1,
-    "warn_count": 1,
+  "_legacy": {
+    "attestation": {
+      "fail_count": 1,
+      "fairy_version": "0.1.0",
+      "rulepack_id": "GEO-SEQ-BULK",
+      "rulepack_version": "0.1.0",
+      "run_at_utc": "2025-11-12T06:35:09.212304+00:00",
+      "submission_ready": false,
+      "warn_count": 1
+    },
+    "findings": [
+      {
+        "code": "CORE.ID.UNMATCHED_SAMPLE",
+        "details": {
+          "column": "sample_id",
+          "hint": "Fix sample_id or add that sample to samples.tsv.",
+          "kind": "file_unknown_sample_id",
+          "message": "File references sample_id 'S999' not found in samples.tsv.",
+          "row": 2
+        },
+        "how_to_fix": "Align sample_id sets across samples.tsv and files.tsv.",
+        "severity": "FAIL",
+        "where": "row 2, column 'sample_id'",
+        "why": "Every file must map to a described sample and vice versa."
+      },
+      {
+        "code": "CORE.DATE.INVALID_ISO8601",
+        "details": {
+          "column": "collection_date",
+          "hint": "Use format YYYY-MM-DD, e.g. 2025-10-02.",
+          "kind": "invalid_iso8601_date",
+          "message": "Value '10/3/25' in collection_date is not ISO8601 (YYYY-MM-DD).",
+          "row": 0
+        },
+        "how_to_fix": "Use ISO8601 (YYYY-MM-DD).",
+        "severity": "WARN",
+        "where": "row 0, column 'collection_date'",
+        "why": "Ambiguous dates hurt reuse; curators may ask for fixes."
+      }
+    ]
+  },
+  "attestation": null,
+  "dataset_id": "sha256:def328d544e5b5a6a0b9617438c5673432d5b57040c0b143eef99ef774c77ca9",
+  "engine": null,
+  "generated_at": "2025-11-11T12:00:00Z",
+  "metadata": {
     "inputs": {
+      "files": {
+        "header": [
+          "sample_id",
+          "layout",
+          "filename"
+        ],
+        "n_cols": 3,
+        "n_rows": 3,
+        "path": "/home/jenni/projects/fairy-core/demos/scratchrun/files.tsv",
+        "sha256": "8ec6eaeb72ce5d853b76876da578dc251d392176a9384544a8eaf6433964d9fe"
+      },
       "samples": {
-        "path": "/home/jenni/projects/fairy-core/demos/scratchrun/samples.tsv",
-        "sha256": "f965407ccaac8ee80953c634b7ad47a4c7441945dfebb8b5dabdb6657ed37165",
-        "n_rows": 2,
-        "n_cols": 10,
         "header": [
           "sample_id",
           "sample_title",
@@ -24,49 +69,86 @@
           "cell_line",
           "cell_type",
           "collection_date"
-        ]
-      },
-      "files": {
-        "path": "/home/jenni/projects/fairy-core/demos/scratchrun/files.tsv",
-        "sha256": "8ec6eaeb72ce5d853b76876da578dc251d392176a9384544a8eaf6433964d9fe",
-        "n_rows": 3,
-        "n_cols": 3,
-        "header": [
-          "sample_id",
-          "layout",
-          "filename"
-        ]
-      }
-    }
-  },
-  "findings": [
-    {
-      "code": "CORE.ID.UNMATCHED_SAMPLE",
-      "severity": "FAIL",
-      "where": "row 2, column 'sample_id'",
-      "why": "Every file must map to a described sample and vice versa.",
-      "how_to_fix": "Align sample_id sets across samples.tsv and files.tsv.",
-      "details": {
-        "kind": "file_unknown_sample_id",
-        "message": "File references sample_id 'S999' not found in samples.tsv.",
-        "hint": "Fix sample_id or add that sample to samples.tsv.",
-        "row": 2,
-        "column": "sample_id"
+        ],
+        "n_cols": 10,
+        "n_rows": 2,
+        "path": "/home/jenni/projects/fairy-core/demos/scratchrun/samples.tsv",
+        "sha256": "f965407ccaac8ee80953c634b7ad47a4c7441945dfebb8b5dabdb6657ed37165"
       }
     },
-    {
-      "code": "CORE.DATE.INVALID_ISO8601",
-      "severity": "WARN",
-      "where": "row 0, column 'collection_date'",
-      "why": "Ambiguous dates hurt reuse; curators may ask for fixes.",
-      "how_to_fix": "Use ISO8601 (YYYY-MM-DD).",
-      "details": {
-        "kind": "invalid_iso8601_date",
-        "message": "Value '10/3/25' in collection_date is not ISO8601 (YYYY-MM-DD).",
-        "hint": "Use format YYYY-MM-DD, e.g. 2025-10-02.",
-        "row": 0,
-        "column": "collection_date"
-      }
+    "rulepack": {
+      "id": "GEO-SEQ-BULK",
+      "path": "/home/jenni/projects/fairy-core/src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json",
+      "sha256": "56187ff593c6a3fb23fda71de2707d52684cee3e972acf474c3aec985e2317ee",
+      "version": "0.1.0"
     }
-  ]
+  },
+  "results": [
+    {
+      "count": 1,
+      "level": "warn",
+      "rule": "CORE.DATE.INVALID_ISO8601",
+      "samples": [
+        {
+          "column": "collection_date",
+          "hint": "Use format YYYY-MM-DD, e.g. 2025-10-02.",
+          "message": "Value '10/3/25' in collection_date is not ISO8601 (YYYY-MM-DD).",
+          "row": 1
+        }
+      ]
+    },
+    {
+      "count": 1,
+      "level": "fail",
+      "rule": "CORE.ID.UNMATCHED_SAMPLE",
+      "samples": [
+        {
+          "column": "sample_id",
+          "hint": "Fix sample_id or add that sample to samples.tsv.",
+          "message": "File references sample_id 'S999' not found in samples.tsv.",
+          "row": 2
+        }
+      ]
+    },
+    {
+      "count": 0,
+      "level": "pass",
+      "rule": "GEO.BIO.CONTEXT_MISSING",
+      "samples": []
+    },
+    {
+      "count": 0,
+      "level": "pass",
+      "rule": "GEO.FILE.PAIRING_MISMATCH",
+      "samples": []
+    },
+    {
+      "count": 0,
+      "level": "pass",
+      "rule": "GEO.REQ.MISSING_FIELD",
+      "samples": []
+    },
+    {
+      "count": 0,
+      "level": "pass",
+      "rule": "GEO.REQ.MISSING_PROCESSED_DATA",
+      "samples": []
+    }
+  ],
+  "schema_version": "1.0.0",
+  "summary": {
+    "by_level": {
+      "fail": 1,
+      "pass": 4,
+      "warn": 1
+    },
+    "by_rule": {
+      "CORE.DATE.INVALID_ISO8601": "warn",
+      "CORE.ID.UNMATCHED_SAMPLE": "fail",
+      "GEO.BIO.CONTEXT_MISSING": "pass",
+      "GEO.FILE.PAIRING_MISMATCH": "pass",
+      "GEO.REQ.MISSING_FIELD": "pass",
+      "GEO.REQ.MISSING_PROCESSED_DATA": "pass"
+    }
+  }
 }

@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,10 @@ from typing import Any
 import pandas as pd
 
 # pull shared types/utilities
+from ..models.preflight_report_v1 import (
+    InputMetadata,
+    RulepackMetadata,
+)
 from ..validation_api import (
     WarningItem,
     now_utc_iso,
@@ -33,6 +38,8 @@ from ..validation_api import (
     validate_csv as _core_validate_csv,  # <-- NEW: import the canonical validate_csv
 )
 from ..validators import rna  # to call check_* helpers
+from .provenance import compute_dataset_id, sha256_file, summarize_tabular
+from .transform import transform_findings_to_results
 
 
 # ---  bridge function so legacy code (process_csv) still works ---
@@ -65,80 +72,6 @@ def _where_from_issue(issue: WarningItem, fallback_where: str) -> str:
     return fallback_where
 
 
-# === provenance helpers
-
-
-def _sha256_file(p: Path) -> str:
-    """
-    Return sha256 hex digest of file at path p.
-    Chunked so we don't load huge files fully into memory.
-    """
-
-    h = sha256()
-    with p.open("rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _summarize_tabular(p: Path) -> dict[str, Any]:
-    """
-    Collect provenance for a TSV/CSV-like metadata file:
-    -path (as string)
-    -sha256
-    -n_rows (data rows, not counting header)
-    -n_cols
-    -header (list[str])
-
-    Will *try* to use Frictionless if available for more robust parsing.
-    If that fails or isn't installed, we fall back to simple TSV splitter.
-    """
-    path_str = str(p)
-    file_hash = _sha256_file(p)
-
-    header: list[str] = []
-    n_cols = 0
-    n_rows = 0
-
-    # Try Frictionless first
-    try:
-        from frictionless import Resource  # type: ignore
-
-        resource = Resource(path_str)
-
-        # header list
-        header = list(resource.header or [])
-        n_cols = len(header)
-
-        # Count rows via frictionless read_rows() (each is a dict-like row of data)
-        data_rows = resource.read_rows()
-        n_rows = len(data_rows)
-
-    except Exception:
-        # Fallback: naive TSV parse
-        with p.open("r", encoding="utf-8") as f:
-            lines = f.read().splitlines()
-
-        if lines:
-            header_line = lines[0]
-            header = header_line.split("\t")
-            n_cols = len(header)
-            # everything after header is data rows
-            n_rows = max(len(lines) - 1, 0)
-        else:
-            header = []
-            n_cols = 0
-            n_rows = 0
-
-    return {
-        "path": path_str,
-        "sha256": file_hash,
-        "n_rows": n_rows,
-        "n_cols": n_cols,
-        "header": header,
-    }
-
-
 def run_rulepack(
     rulepack_path: Path,
     samples_path: Path,
@@ -158,8 +91,10 @@ def run_rulepack(
     files_df = pd.read_csv(files_path, sep="\t", dtype=str).fillna("")
 
     all_findings: list[dict] = []
+    all_rules: list[dict] = []  # Track all rules for transformation
 
     for rule in pack["rules"]:
+        all_rules.append(rule)  # Track rule for later transformation
         spec = rule["check"]
         ctype = spec["type"]
 
@@ -235,13 +170,58 @@ def run_rulepack(
             }
             all_findings.append(finding)
 
+    # Transform findings to results structure
+    results = transform_findings_to_results(all_findings, all_rules)
+
+    # Compute summary statistics
+    by_level: dict[str, int] = {"pass": 0, "warn": 0, "fail": 0}
+    by_rule: dict[str, str] = {}
+
+    for result in results:
+        level = result["level"]
+        rule_id = result["rule"]
+        by_level[level] = by_level.get(level, 0) + 1
+
+        # Precedence: fail > warn > pass (if rule appears multiple times, take highest severity)
+        if rule_id not in by_rule:
+            by_rule[rule_id] = level
+        else:
+            current_level = by_rule[rule_id]
+            # fail > warn > pass
+            if level == "fail" or (level == "warn" and current_level == "pass"):
+                by_rule[rule_id] = level
+
+    # Sort by_rule keys for deterministic ordering
+    by_rule = dict(sorted(by_rule.items()))
+
+    # Build metadata.inputs with full metadata objects
+    # Map input name → InputMetadata
+    inputs_metadata: dict[str, InputMetadata] = {}
+
+    # Current implementation uses hardcoded "samples" and "files"
+    # TODO: Extract from rulepack inputs definition when available
+    input_paths = {
+        "samples": samples_path,
+        "files": files_path,
+    }
+
+    # Build InputMetadata for each input
+    for input_name, input_path in sorted(input_paths.items()):  # Sort for deterministic ordering
+        meta_dict = summarize_tabular(Path(input_path))
+        inputs_metadata[input_name] = InputMetadata(
+            path=meta_dict["path"],
+            sha256=meta_dict["sha256"],
+            n_rows=meta_dict["n_rows"],
+            n_cols=meta_dict["n_cols"],
+            header=meta_dict["header"],
+        )
+
+    # For now, keep the old structure for backward compatibility
+    # TODO: Replace with new PreflightReportV1 structure in next subtasks
     fail_count = sum(1 for f in all_findings if f["severity"] == "FAIL")
     warn_count = sum(1 for f in all_findings if f["severity"] == "WARN")
 
-    # Capture provenance / trust info for each input sheet
-    samples_meta = _summarize_tabular(Path(samples_path))
-    files_meta = _summarize_tabular(Path(files_path))
-
+    # Build attestation (without inputs - metadata.inputs is canonical)
     attestation = {
         "rulepack_id": pack.get("rulepack_id", "UNKNOWN_RULEPACK"),
         "rulepack_version": pack.get("rulepack_version", "0.0.0"),
@@ -250,15 +230,97 @@ def run_rulepack(
         "submission_ready": (fail_count == 0),
         "fail_count": fail_count,
         "warn_count": warn_count,
-        "inputs": {
-            "samples": samples_meta,
-            "files": files_meta,
+    }
+
+    # Build metadata.rulepack with provenance
+    rulepack_sha256 = sha256_file(rulepack_path)
+    rulepack_id = pack.get("rulepack_id")
+    rulepack_version = pack.get("rulepack_version")
+
+    # Compute params_sha256 if params provided
+    params_sha256: str | None = None
+    if params:
+        # Canonical JSON serialization: sorted keys, no whitespace
+        canonical_params_json = json.dumps(params, sort_keys=True, separators=(",", ":"))
+        params_bytes = canonical_params_json.encode("utf-8")
+        params_hash_obj = sha256(params_bytes)
+        params_sha256 = params_hash_obj.hexdigest()
+
+    rulepack_metadata = RulepackMetadata(
+        path=str(rulepack_path),
+        sha256=rulepack_sha256,
+        id=rulepack_id,
+        version=rulepack_version,
+        params_sha256=params_sha256,
+    )
+
+    # Convert InputMetadata dataclasses to dicts for JSON serialization
+    inputs_metadata_dict: dict[str, dict[str, Any]] = {}
+    for name, input_meta in sorted(inputs_metadata.items()):  # Sort keys alphabetically
+        inputs_metadata_dict[name] = asdict(input_meta)
+
+    # Convert RulepackMetadata to dict for JSON serialization
+    # Filter out None values to match schema (optional fields should be omitted, not null)
+    rulepack_metadata_dict = {k: v for k, v in asdict(rulepack_metadata).items() if v is not None}
+
+    # Compute dataset_id from all inputs
+    inputs_meta_for_dataset_id = {
+        name: {
+            "sha256": meta.sha256,
+            "n_rows": meta.n_rows,
+            "n_cols": meta.n_cols,
+        }
+        for name, meta in inputs_metadata.items()
+    }
+    dataset_id = compute_dataset_id(inputs_meta_for_dataset_id)
+
+    # Format timestamp to ISO-8601 UTC with Z suffix
+    # Allow override via environment variable for deterministic golden tests
+    import os
+
+    fixed_timestamp = os.environ.get("FAIRY_FIXED_TIMESTAMP")
+    if fixed_timestamp:
+        timestamp = fixed_timestamp
+    else:
+        timestamp = now_utc_iso()
+    if timestamp.endswith("+00:00"):
+        timestamp = timestamp.replace("+00:00", "Z")
+    elif not timestamp.endswith("Z"):
+        # If it's in ISO format without Z, add Z
+        timestamp = timestamp + "Z" if "T" in timestamp else timestamp
+
+    # Build new v1 report structure
+    report = {
+        "schema_version": "1.0.0",
+        "generated_at": timestamp,
+        "dataset_id": dataset_id,
+        "metadata": {
+            "inputs": inputs_metadata_dict,
+            "rulepack": rulepack_metadata_dict,
+        },
+        "summary": {
+            "by_level": by_level,
+            "by_rule": by_rule,
+        },
+        "results": results,
+        # Optional fields for future extensibility
+        "engine": None,  # Can be populated later
+        "attestation": None,  # Can be populated later
+        # Keep old structure temporarily for backward compatibility during migration
+        "_legacy": {
+            "attestation": attestation,
+            "findings": all_findings,
         },
     }
 
-    report = {
-        "attestation": attestation,
-        "findings": all_findings,
-    }
+    # Deprecation warning for _legacy field
+    import warnings
+
+    warnings.warn(
+        "The '_legacy' field in preflight reports is deprecated and will be removed in v1.2.0. "
+        "Please migrate to the v1.0.0 structure (metadata, summary, results).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     return report

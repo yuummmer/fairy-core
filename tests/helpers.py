@@ -5,6 +5,7 @@ from pathlib import Path
 # include keys that vary run-to-run in your current CLI output
 VOLATILE_KEYS = {
     "run_at_utc",
+    "generated_at",  # New v1 field (replaces run_at_utc)
     "sha256",
     "timestamp",
     "duration_ms",

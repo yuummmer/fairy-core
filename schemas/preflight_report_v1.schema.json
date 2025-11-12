@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jenniferslotnick/fairy-core/schemas/preflight_report_v1.schema.json",
+  "title": "FAIRy Preflight Report v1",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "dataset_id", "metadata", "summary", "results"],
+  "additionalProperties": false,
+  "properties": {
+    "_legacy": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Legacy report structure for backward compatibility during migration"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "engine": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "attestation": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["inputs"],
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["path", "sha256", "n_rows", "n_cols", "header"],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "n_rows": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "n_cols": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "header": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "rulepack": {
+          "type": "object",
+          "required": ["path", "sha256"],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "id": {
+              "type": ["string", "null"]
+            },
+            "version": {
+              "type": ["string", "null"]
+            },
+            "params_sha256": {
+              "type": ["string", "null"],
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["by_level", "by_rule"],
+      "additionalProperties": false,
+      "properties": {
+        "by_level": {
+          "type": "object",
+          "required": ["pass", "warn", "fail"],
+          "additionalProperties": false,
+          "properties": {
+            "pass": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "warn": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fail": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "by_rule": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["pass", "warn", "fail"]
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule", "level", "count", "samples"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "level": {
+            "type": "string",
+            "enum": ["pass", "warn", "fail"]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "samples": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "row": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "column": {
+                  "type": ["string", "null"]
+                },
+                "value": {
+                  "type": ["string", "number", "boolean", "null"]
+                },
+                "message": {
+                  "type": ["string", "null"]
+                },
+                "hint": {
+                  "type": ["string", "null"]
+                }
+              }
+            }
+          },
+          "meta": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

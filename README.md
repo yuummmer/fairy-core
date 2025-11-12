@@ -103,9 +103,9 @@ params: {}   # optional
 
 ```
 ### Reports
-- JSON: structured findings + attestation (hashes, timestamps, versions)
-- Markdown: curator-friendly one-pager
-- Exit: 0 if no FAIL, else 1
+- **JSON**: Structured v1.0.0 schema reports with deterministic ordering (see [`schemas/preflight_report_v1.schema.json`](schemas/preflight_report_v1.schema.json) and [`docs/reporting.md`](docs/reporting.md))
+- **Markdown**: Curator-friendly one-pager (generated alongside JSON)
+- **Exit code**: 0 if no FAIL, else 1
 ---
 
 ## Development
