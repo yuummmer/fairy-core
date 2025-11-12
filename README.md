@@ -12,13 +12,15 @@
 # ✨ FAIRy Core ✨
 
 Local-first validator and packager for FAIR-compliant research datasets.
-This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq).
+This repo contains the **core validation engine** and **CLI** (e.g., `fairy preflight`, `fairy validate`).
 
 - ✅ Validates tabular metadata against repository-specific **rulepacks**
 - ✅ Emits **machine-readable** (JSON) and **human-readable** (Markdown) reports
 - ✅ Writes **attestation & provenance**, with optional export bundle (zip)
-- 🧪 Includes intentionally “failing” fixtures for smoketests
+- 🧪 Includes intentionally "failing" fixtures for smoketests
 - 🚧 Early alpha; interfaces may change prior to v1.0
+
+> 💡 **Want the full UI experience?** For project workspaces, guided fixes, visual workflows, and demo examples, see [**fairy-skeleton**](https://github.com/yuummmer/fairy-skeleton) — a Streamlit-based demo tenant that uses this core engine.
 
 ---
 ## 🌱 What is FAIRy?
@@ -32,6 +34,10 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 
 ## ⚙️ How Does It Work?
 
+### Using the UI (fairy-skeleton)
+
+The full visual workflow with project management, guided fixes, and export bundles is available in [**fairy-skeleton**](https://github.com/yuummmer/fairy-skeleton):
+
 1. Create a new project workspace (all local).
 2. Upload your dataset (CSV, TSV, FASTQ, Excel, JSON, etc.).
 3. Choose your submission target(s): GEO, SRA, Zenodo, etc.
@@ -39,6 +45,17 @@ This repo contains the **core CLI** and rulepack support (e.g., GEO bulk RNA-seq
 5. Apply guided fixes on a working copy, or review/patch manually if preferred.
 6. Export a submission-ready package for your target repository — no surprises, no guessing.
 7. All fix history, audit logs, and provenance are saved in your local project.
+
+### Using the CLI (fairy-core)
+
+This repo provides the command-line interface:
+
+1. Point the CLI at your data files (TSV/CSV) and a rulepack.
+2. Run validation: `fairy preflight` or `fairy validate`.
+3. Review the JSON/Markdown reports with findings and `how_to_fix` guidance.
+4. Manually fix your data based on the reports.
+5. Re-run validation until `submission_ready: true`.
+6. Use the Python API (`export_submission()`) to create export bundles (or use fairy-skeleton UI).
 
 ---
 
@@ -135,10 +152,9 @@ tests/         # unit + smoke tests
 ```
 ---
 ## Want a longer guide?
-Multi-input CLI, cross-table checks, export bundle, and troubleshooting live in docs/:
-- docs/multi-input.md
-- docs/export-bundle.md
-- docs/troubleshooting.md
+
+- **Reporting**: See [`docs/reporting.md`](docs/reporting.md) for report schema details
+- **UI workflows**: For project management, guided fixes, and visual demos, see [fairy-skeleton](https://github.com/yuummmer/fairy-skeleton)
 
 ---
 
@@ -181,6 +197,6 @@ Repository: https://github.com/yuummmer/fairy-core
 
 ## Roadmap
 - Rulepack adapters (aliases, NA sentinels, regex/type coercions, unit enums)
-- Multi-input CLI UX(auto-detect TSV/CSV, merge on sample_id)
+- Multi-input CLI UX (auto-detect TSV/CSV, merge on sample_id)
 - Richer provenance + determinism tests (goldens)
-- Hosted UI orchestrator (separate repo)
+- Export bundle CLI command (currently available via Python API)
