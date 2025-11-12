@@ -51,9 +51,20 @@ def _save_last_codes(cache_path: Path, codes: set[str]) -> None:
 
 
 def main(args) -> int:
-    # NEW: load params (args.param_file is a Path or None)
+    # tolerate missing attributes from test dummy args
+    param_file = getattr(args, "param_file", None)
+    out_json = getattr(args, "out_json", None) or getattr(args, "out", None)
+    out_md = getattr(args, "out_md", None)
+
+    # Optional CLI fields for the "real" path
+    rulepack = getattr(args, "rulepack", None)
+    samples = getattr(args, "samples", None)
+    files = getattr(args, "files", None)
+    fairy_ver = getattr(args, "fairy_version", FAIRY_VERSION)
+
+    # load params file if provided
     try:
-        params = load_params_file(str(args.param_file) if args.param_file else None)
+        params = load_params_file(str(param_file) if param_file else None)
     except ParamsFileError as e:
         print(str(e))
         return 2

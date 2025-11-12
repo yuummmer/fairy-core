@@ -16,6 +16,25 @@ except Exception:
 from fairy.validation.rulepack_runner import run_rulepack, write_markdown
 
 
+# Resolve paths that tests pass relative to the repo root (pytest runs from a tmp dir)
+def _repo_root() -> Path:
+    # src/fairy/cli/validate.py -> .../src/fairy/cli -> repo root is parents[3]
+    here = Path(__file__).resolve()
+    candidate = here.parents[3]
+    # extra safety: if someone moves files, walk up until we find a .git or pyproject
+    for p in [candidate, *candidate.parents]:
+        if (p / ".git").exists() or (p / "pyproject.toml").exists():
+            return p
+    return candidate  # fallback
+
+
+def _resolve_path_like(p: Path) -> Path:
+    if p.exists():
+        return p
+    alt = (_repo_root() / p).resolve()
+    return alt if alt.exists() else p
+
+
 def _parse_inputs(pairs: list[str]) -> dict[str, Path]:
     """Parse repeated --inputs name=path arguments into an ordered dict."""
     inputs: dict[str, Path] = OrderedDict()
@@ -29,7 +48,7 @@ def _parse_inputs(pairs: list[str]) -> dict[str, Path]:
         if not name:
             print("ERROR: --inputs name cannot be empty", file=sys.stderr)
             raise SystemExit(2)
-        inputs[name] = p
+        inputs[name] = _resolve_path_like(p)
     return inputs
 
 
@@ -55,7 +74,7 @@ def main(argv=None) -> int:
         print("ERROR: PyYAML is required (pip install pyyaml)", file=sys.stderr)
         return 2
 
-    rp_path = Path(args.rulepack)
+    rp_path = _resolve_path_like(Path(args.rulepack))
     if not rp_path.exists():
         print(f"ERROR: rulepack not found: {rp_path}", file=sys.stderr)
         return 2
@@ -77,7 +96,7 @@ def main(argv=None) -> int:
         if not args.input:
             print("ERROR: provide INPUT or at least one --inputs name=path", file=sys.stderr)
             return 2
-        inp = Path(args.input)
+        inp = _resolve_path_like(Path(args.input))
         if inp.is_dir():
             csvs = sorted([p for p in inp.glob("*.csv") if p.is_file()], key=lambda x: x.name)
             if not csvs:

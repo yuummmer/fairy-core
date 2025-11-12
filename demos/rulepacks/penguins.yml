@@ -1,9 +1,24 @@
 meta:
   name: penguins-kata
-  version: 0.1.0
+  version: 0.2.0
   description: Custom checks for Palmer Penguins
 
 rules:
+  - id: required_core
+    type: required
+    severity: fail
+    config:
+      pattern: "penguins*.csv"
+      columns:
+        - species
+        - island
+        - bill_length_mm
+        - bill_depth_mm
+        - flipper_length_mm
+        - body_mass_g
+        - sex
+        - year
+
   - id: no_dups
     type: no_duplicate_rows
     severity: fail
@@ -18,7 +33,6 @@ rules:
       pattern: "penguins*.csv"
       column: species
       allow: ["Adelie", "Chinstrap", "Gentoo"]
-
 
   - id: island_enum
     type: enum
@@ -83,5 +97,3 @@ rules:
     config:
       pattern: "penguins*.csv"
       columns: ["row_id"]
-
-params: {}
