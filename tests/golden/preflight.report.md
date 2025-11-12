@@ -1,8 +1,10 @@
 # FAIRy Preflight Report
 
+- **Schema version:** 1.0.0
 - **Rulepack:** GEO-SEQ-BULK@0.1.0
 - **FAIRy version:** 0.1.0
-- **Run at (UTC):** 2025-11-06T04:35:45.736817+00:00
+- **Generated at (UTC):** 2025-11-11T12:00:00Z
+- **Dataset ID:** sha256:def328d544e5b5a6a0b9617438c5673432d5b57040c0b143eef99ef774c77ca9
 - **submission_ready:** `False`
 
 ## Summary
@@ -35,18 +37,31 @@ You can hand this block to a curator or PI as evidence of what was checked.
 
 ---
 
-## Findings (all current issues)
+## Results (all current issues)
 
-Severity `FAIL` means “must fix before submission.”
-Severity `WARN` means “soft violation / likely curator feedback.”
+Level `fail` means “must fix before submission.”
+Level `warn` means “soft violation / likely curator feedback.”
+Level `pass` means the rule passed with no violations.
 
-| Severity | Code | Location | Why it matters | How to fix |
-|----------|------|----------|----------------|------------|
-| FAIL | CORE.ID.UNMATCHED_SAMPLE | row 2, column 'sample_id' | Every file must map to a described sample and vice versa. | Align sample_id sets across samples.tsv and files.tsv. |
-| WARN | CORE.DATE.INVALID_ISO8601 | row 0, column 'collection_date' | Ambiguous dates hurt reuse; curators may ask for fixes. | Use ISO8601 (YYYY-MM-DD). |
+| Level | Rule | Count | Samples |
+|-------|------|-------|--------|
+| warn | CORE.DATE.INVALID_ISO8601 | 1 | row 1, col collection_date |
+| fail | CORE.ID.UNMATCHED_SAMPLE | 1 | row 2, col sample_id |
+| pass | GEO.BIO.CONTEXT_MISSING | 0 | (none) |
+| pass | GEO.FILE.PAIRING_MISMATCH | 0 | (none) |
+| pass | GEO.REQ.MISSING_FIELD | 0 | (none) |
+| pass | GEO.REQ.MISSING_PROCESSED_DATA | 0 | (none) |
+
+### CORE.DATE.INVALID_ISO8601 (warn, 1 sample)
+
+- row 1, column 'collection_date', message: Value '10/3/25' in collection_date is not ISO8601 (YYYY-MM-DD)., hint: Use format YYYY-MM-DD, e.g. 2025-10-02.
+
+### CORE.ID.UNMATCHED_SAMPLE (fail, 1 sample)
+
+- row 2, column 'sample_id', message: File references sample_id 'S999' not found in samples.tsv., hint: Fix sample_id or add that sample to samples.tsv.
 
 ---
 
 ## Resolved since last run
 
-_No baseline from prior run (first run or cache missing)._
+_No previously-reported issues resolved._

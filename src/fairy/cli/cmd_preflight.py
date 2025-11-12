@@ -66,36 +66,66 @@ def main(args) -> int:
         params=params,
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    # Use sort_keys=True for deterministic JSON output
+    args.out.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
-    att = report["attestation"]
+    # Extract data from new v1 structure
+    metadata = report["metadata"]
+    summary = report["summary"]
+    results = report["results"]
+
+    # For backward compatibility during migration, also check _legacy
+    legacy_att = report.get("_legacy", {}).get("attestation")
 
     cache_path = args.out.parent / ".fairy_last_run.json"
-    curr_codes = {f["code"] for f in report["findings"]}
+    # Extract rule codes from results (rule field)
+    curr_codes = {r["rule"] for r in results}
     prior_codes = _load_last_codes(cache_path)
     resolved_codes = sorted((prior_codes or set()) - curr_codes) if prior_codes else []
     _save_last_codes(cache_path, curr_codes)
 
     md_path = args.out.with_suffix(".md")
-    emit_preflight_markdown(md_path, att, report, resolved_codes, prior_codes)
+    # Pass new structure to markdown emitter (it will handle the migration)
+    emit_preflight_markdown(md_path, report, resolved_codes, prior_codes)
 
     # Console summary (trimmed)
     print("")
     print("=== FAIRy Preflight ===")
-    print(f"Rulepack:         {att['rulepack_id']}@{att['rulepack_version']}")
-    print(f"FAIRy version:    {att['fairy_version']}")
-    print(f"Run at (UTC):     {att['run_at_utc']}")
 
-    fail_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "FAIL"})
-    warn_codes = sorted({f["code"] for f in report["findings"] if f["severity"] == "WARN"})
+    # Extract rulepack info from metadata.rulepack
+    rulepack_meta = metadata.get("rulepack", {})
+    rulepack_id = rulepack_meta.get("id", "UNKNOWN_RULEPACK")
+    rulepack_version = rulepack_meta.get("version", "0.0.0")
 
-    print(f"FAIL findings:    {att['fail_count']} {fail_codes}")
-    print(f"WARN findings:    {att['warn_count']} {warn_codes}")
-    print(f"submission_ready: {att['submission_ready']}")
+    # FAIRy version from legacy attestation if available, otherwise use default
+    fairy_version = (
+        legacy_att.get("fairy_version", args.fairy_version) if legacy_att else args.fairy_version
+    )
+
+    print(f"Rulepack:         {rulepack_id}@{rulepack_version}")
+    print(f"FAIRy version:    {fairy_version}")
+    print(f"Generated at:     {report['generated_at']}")
+
+    # Extract fail/warn codes from results
+    fail_codes = sorted({r["rule"] for r in results if r["level"] == "fail"})
+    warn_codes = sorted({r["rule"] for r in results if r["level"] == "warn"})
+
+    # Get counts from summary
+    by_level = summary.get("by_level", {})
+    fail_count = by_level.get("fail", 0)
+    warn_count = by_level.get("warn", 0)
+    submission_ready = fail_count == 0
+
+    print(f"FAIL findings:    {fail_count} {fail_codes}")
+    print(f"WARN findings:    {warn_count} {warn_codes}")
+    print(f"submission_ready: {submission_ready}")
     print(f"Report JSON:      {args.out}")
     print("")
 
-    inputs = att.get("inputs", {})
+    # Extract inputs from metadata.inputs
+    inputs = metadata.get("inputs", {})
     samples_info = inputs.get("samples", {})
     files_info = inputs.get("files", {})
 
@@ -123,4 +153,4 @@ def main(args) -> int:
             print(f"  ✔ {code}")
     print("")
 
-    return 0 if att["submission_ready"] else 1
+    return 0 if submission_ready else 1

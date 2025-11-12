@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ...cli.run import FAIRY_VERSION, _emit_preflight_markdown  # reuse your MD emitter
+from ...cli.output_md import emit_preflight_markdown  # reuse your MD emitter
+from ...cli.run import FAIRY_VERSION
 from ..services.validator import run_rulepack
 
 
@@ -69,14 +70,26 @@ def run_preflight_and_write(
 
     # Markdown (reuse your CLI emitter)
     md_path = out_stem.with_suffix(".md")
-    _emit_preflight_markdown(
+    emit_preflight_markdown(
         md_path=md_path,
-        att=report["attestation"],
         report=report,
         resolved_codes=[],  # resolved diff is optional for export demo
         prior_codes=set(),  # pass empty set so emitter renders the block
     )
-    return json_path, md_path, report["attestation"]
+    # Return metadata dict for backward compatibility (extract from new structure)
+    metadata = report.get("metadata", {})
+    rulepack_meta = metadata.get("rulepack", {})
+    summary = report.get("summary", {})
+    by_level = summary.get("by_level", {})
+    att_dict = {
+        "rulepack_id": rulepack_meta.get("id", "UNKNOWN_RULEPACK"),
+        "rulepack_version": rulepack_meta.get("version", "0.0.0"),
+        "fairy_version": fairy_version,
+        "submission_ready": by_level.get("fail", 0) == 0,
+        "fail_count": by_level.get("fail", 0),
+        "warn_count": by_level.get("warn", 0),
+    }
+    return json_path, md_path, att_dict
 
 
 def _shim_build_bundle(
@@ -173,6 +186,7 @@ def export_submission(
         out_stem=export_dir / "report",
         fairy_version=fairy_version,
     )
+    # Check submission_ready from returned attestation dict
     if not att.get("submission_ready", False):
         raise RuntimeError("Export requested while submission_ready == False")
 

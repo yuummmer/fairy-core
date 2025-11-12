@@ -41,3 +41,11 @@ out_*.json
 # local run artifacts
 out_*.json
 repo-tree.txt
+
+# Cursor IDE files
+.cursor/
+
+# Task/PR management files (generated for development)
+PR_DESCRIPTION.md
+SHIP_CHECKLIST.md
+tasks/tasks-*.md
