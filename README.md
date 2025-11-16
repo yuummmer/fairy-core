@@ -113,6 +113,16 @@ For full documentation, see the [`docs/`](./docs) folder:
 - [Kata gallery](./docs/katas/index.md)
 
 ---
+## Documentation
+
+For full documentation, see the [`docs/`](./docs) folder:
+
+- [Getting started](./docs/getting-started.md)
+- [CLI usage](./docs/cli.md)
+- [Reporting](./docs/reporting.md)
+- [Kata gallery](./docs/katas/index.md)
+
+---
 ## 🐧 Rulepacks (YAML)
 
 Example rulepack (minimal shape):
@@ -169,6 +179,11 @@ demos/         # demo rulepacks / scratch data (not shipped)
 tests/         # unit + smoke tests
 
 ```
+---
+## Want a longer guide?
+
+See the [Documentation](#documentation) section above for detailed guides. For project management, guided fixes, and visual demos, see [fairy-lab](https://github.com/yuummmer/fairy-lab).
+
 ---
 
 ## License
