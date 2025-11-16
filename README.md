@@ -20,7 +20,7 @@ This repo contains the **core validation engine** and **CLI** (e.g., `fairy pref
 - 🧪 Includes intentionally "failing" fixtures for smoketests
 - 🚧 Early alpha; interfaces may change prior to v1.0
 
-> 💡 **Want the full UI experience?** For project workspaces, guided fixes, visual workflows, and demo examples, see [**fairy-skeleton**](https://github.com/yuummmer/fairy-skeleton) — a Streamlit-based demo tenant that uses this core engine.
+> 💡 **Want the full UI experience?** For project workspaces, guided fixes, visual workflows, and demo examples, see [**fairy-lab**](https://github.com/yuummmer/fairy-lab) — a Streamlit-based demo tenant that uses this core engine.
 
 ---
 ## 🌱 What is FAIRy?
@@ -34,9 +34,9 @@ This repo contains the **core validation engine** and **CLI** (e.g., `fairy pref
 
 ## ⚙️ How Does It Work?
 
-### Using the UI (fairy-skeleton)
+### Using the UI (fairy-lab)
 
-The full visual workflow with project management, guided fixes, and export bundles is available in [**fairy-skeleton**](https://github.com/yuummmer/fairy-skeleton):
+The full visual workflow with project management, guided fixes, and export bundles is available in [**fairy-lab**](https://github.com/yuummmer/fairy-lab):
 
 1. Create a new project workspace (all local).
 2. Upload your dataset (CSV, TSV, FASTQ, Excel, JSON, etc.).
@@ -55,7 +55,7 @@ This repo provides the command-line interface:
 3. Review the JSON/Markdown reports with findings and `how_to_fix` guidance.
 4. Manually fix your data based on the reports.
 5. Re-run validation until `submission_ready: true`.
-6. Use the Python API (`export_submission()`) to create export bundles (or use fairy-skeleton UI).
+6. Use the Python API (`export_submission()`) to create export bundles (or use fairy-lab UI).
 
 ---
 
@@ -97,6 +97,16 @@ python -m fairy.cli rulepack --rulepack demos/rulepacks/penguins.yml
 
 ```
 Compat still works: python -m fairy.cli.run ... and python -m fairy.cli run --mode rulepack ....
+
+---
+## Documentation
+
+For full documentation, see the [`docs/`](./docs) folder:
+
+- [Getting started](./docs/getting-started.md)
+- [CLI usage](./docs/cli.md)
+- [Reporting](./docs/reporting.md)
+- [Kata gallery](./docs/katas/index.md)
 
 ---
 ## 🐧 Rulepacks (YAML)
@@ -153,8 +163,7 @@ tests/         # unit + smoke tests
 ---
 ## Want a longer guide?
 
-- **Reporting**: See [`docs/reporting.md`](docs/reporting.md) for report schema details
-- **UI workflows**: For project management, guided fixes, and visual demos, see [fairy-skeleton](https://github.com/yuummmer/fairy-skeleton)
+See the [Documentation](#documentation) section above for detailed guides. For project management, guided fixes, and visual demos, see [fairy-lab](https://github.com/yuummmer/fairy-lab).
 
 ---
 
