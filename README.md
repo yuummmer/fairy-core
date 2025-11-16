@@ -72,7 +72,7 @@ This repo provides the command-line interface:
 ---
 
 ## Quickstart (90 seconds)
-New: validate is now available alongside preflight — run custom rulepacks with --rulepack and get JSON/Markdown reports (see Penguins demo below).
+
 > Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
 
 ```bash
@@ -80,7 +80,7 @@ New: validate is now available alongside preflight — run custom rulepacks with
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-# 1) Check CLI
+# 1) Check CLI (after install, use: fairy --help)
 python -m fairy.cli --help
 python -m fairy.cli --version
 
@@ -92,11 +92,15 @@ python -m fairy.cli preflight \
   --out     .tmp/report.json
 cat .tmp/report.md   # human summary
 
-# 3) Rulepack loader (YAML schema validation only)
-python -m fairy.cli rulepack --rulepack demos/rulepacks/penguins.yml
+# 3) Validate with custom rulepack (YAML or JSON)
+python -m fairy.cli validate \
+  --rulepack demos/rulepacks/penguins.yml \
+  --inputs default=tests/fixtures/penguins_small.csv \
+  --report-json .tmp/penguins_report.json
 
+# 4) Rulepack schema validation only
+python -m fairy.cli rulepack --rulepack demos/rulepacks/penguins.yml
 ```
-Compat still works: python -m fairy.cli.run ... and python -m fairy.cli run --mode rulepack ....
 
 ---
 ## Documentation
@@ -110,7 +114,9 @@ For full documentation, see the [`docs/`](./docs) folder:
 
 ---
 ## 🐧 Rulepacks (YAML)
-Minimal shape
+
+Example rulepack (minimal shape):
+
 ```yaml
 meta: { name: penguins-kata, version: "0.1.0", description: "Palmer Penguins checks" }
 rules:
@@ -129,10 +135,13 @@ rules:
 params: {}   # optional
 
 ```
-### Reports
+
+## Reports
+
 - **JSON**: Structured v1.0.0 schema reports with deterministic ordering (see [`schemas/preflight_report_v1.schema.json`](schemas/preflight_report_v1.schema.json) and [`docs/reporting.md`](docs/reporting.md))
 - **Markdown**: Curator-friendly one-pager (generated alongside JSON)
 - **Exit code**: 0 if no FAIL, else 1
+
 ---
 
 ## Development
@@ -161,11 +170,6 @@ tests/         # unit + smoke tests
 
 ```
 ---
-## Want a longer guide?
-
-See the [Documentation](#documentation) section above for detailed guides. For project management, guided fixes, and visual demos, see [fairy-lab](https://github.com/yuummmer/fairy-lab).
-
----
 
 ## License
 
@@ -191,22 +195,29 @@ cannot adopt AGPL. See [`COMMERCIAL.md`](./COMMERCIAL.md) or contact
 ---
 
 ## Developer notes
-- Source files use SPDX headers (pre-commit will add them if missing):
-### SPDX-License-Identifier: AGPL-3.0-only
-### Copyright (c) 2025 Jennifer Slotnick
+- Source files use SPDX headers:
+```python
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+```
 - We package rulepacks as package data:
 ```toml
 [tool.setuptools.package-data]
 fairy = ["rulepacks/**/*.json","rulepacks/**/*.yaml","rulepacks/**/*.yml"]
 
 ```
-- Local artifacts to ignore are preconfigured (.out/, exports/, .tmp/, .venv/, __pycache__/).
+- Local artifacts to ignore are preconfigured (.tmp/, .venv/, __pycache__/).
 
 ---
 
 ## Contributing
-Until v1.0, we’re not accepting external code contributions. Please open issues for bugs/ideas.
-(We may introduce a CLA later to enable dual/commercial licensing while keeping the project open.)
+We welcome contributions! See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines on:
+- How to get started (forking, setup, making changes)
+- Ways to contribute (rulepacks, tests, documentation, engine improvements)
+- Specs and PRDs for major features
+- Licensing of contributions
+
+For information about maintainer roles and module stewards, see [`MAINTAINERS.md`](./MAINTAINERS.md).
 
 ---
 
@@ -214,7 +225,7 @@ Until v1.0, we’re not accepting external code contributions. Please open issue
 
 If you use FAIRy in a project, demo, or talk, please cite:
 
-FAIRy (v0.1). Local-first validator for FAIR, AI-ready research data.
+FAIRy (v0.2). Local-first validator for FAIR, AI-ready research data.
 FAIRy-core (engine): https://github.com/yuummmer/fairy-core
 FAIRy Lab (UI & labs): https://github.com/yuummmer/fairy-lab
 
