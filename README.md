@@ -158,14 +158,26 @@ tests/         # unit + smoke tests
 
 ---
 
-## Licensing
-- Core code (src/fairy/**, excluding rulepacks): AGPL-3.0-only. See LICENSE
-- Rulepacks (src/fairy/rulepacks/**): CC0-1.0 (public domain dedication). See src/fairy/rulepacks/LICENSE
-- Samples/fixtures (if present): CC BY-4.0 (documented per folder).
+## License
 
-Third-party attributions: see THIRD_PARTY_LICENSES.md
+FAIRy-core uses a mixed licensing model:
 
->Commercial licensing is available. See COMMERCIAL.md or contact hello@datadabra.com
+- **Core engine code** (`src/fairy/**`, excluding `src/fairy/rulepacks/**`):
+  Licensed under **AGPL-3.0-only**. See [`LICENSE`](./LICENSE).
+
+- **Built-in rulepacks** (`src/fairy/rulepacks/**`):
+  Licensed under **CC0-1.0** (public domain dedication). See
+  [`src/fairy/rulepacks/LICENSE`](./src/fairy/rulepacks/LICENSE).
+
+- **Samples and fixtures** (e.g. `samples/**`, `tests/fixtures/**`):
+  Licensed under **CC BY-4.0** (documented per folder).
+
+- **Third-party components**:
+  See [`THIRD_PARTY_LICENSES.md`](./THIRD_PARTY_LICENSES.md).
+
+Commercial licensing for FAIRy-core is available for organizations that
+cannot adopt AGPL. See [`COMMERCIAL.md`](./COMMERCIAL.md) or contact
+**hello@datadabra.com**.
 
 ---
 
@@ -190,10 +202,12 @@ Until v1.0, we’re not accepting external code contributions. Please open issue
 ---
 
 ## Citation
-If you use FAIRy in a project or talk:
 
-FAIRy Core (v0.1, alpha). Datadabra.
-Repository: https://github.com/yuummmer/fairy-core
+If you use FAIRy in a project, demo, or talk, please cite:
+
+FAIRy (v0.1). Local-first validator for FAIR, AI-ready research data.
+FAIRy-core (engine): https://github.com/yuummmer/fairy-core
+FAIRy Lab (UI & labs): https://github.com/yuummmer/fairy-lab
 
 ## Roadmap
 - Rulepack adapters (aliases, NA sentinels, regex/type coercions, unit enums)
