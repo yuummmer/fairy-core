@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "FAIRy-core: local-first validator for FAIR, AI-ready research data"
+version: 0.2.0
+type: software
+authors:
+  - family-names: Slotnick
+    given-names: Jennifer
+abstract: >
+  FAIRy-core is the local-first validation engine for FAIRy. It provides a
+  rule-based validator and report generator for research datasets, with
+  support for rulepacks, katas, and repository-aligned checks.
+license: AGPL-3.0-only
+repository-code: "https://github.com/yuummmer/fairy-core"
+keywords:
+  - FAIR data
+  - data validation
+  - research software
+  - open science
