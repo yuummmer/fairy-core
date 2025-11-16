@@ -3,6 +3,34 @@
 This guide walks through installing FAIRy-core and running your first validation
 check on a small dataset.
 
+## FAIRy for data stewards
+
+If you're a data steward, research coordinator, or lab manager responsible for preparing datasets for submission to repositories like GEO, SRA, or Zenodo, FAIRy can help you ensure your data meets repository requirements before submission.
+
+### What is FAIRy?
+
+FAIRy is a validation tool that checks your research datasets against repository-specific rules and standards. Think of it as a quality control checker that runs on your computer—it reviews your data files and tells you what needs to be fixed before you submit to a repository.
+
+### Why use FAIRy?
+
+- **Avoid rejection cycles**: Catch errors before submission, so you don't have to fix and resubmit multiple times
+- **Clear, actionable feedback**: FAIRy tells you exactly what's wrong and how to fix it, not just that something failed
+- **Works on your computer**: All validation happens locally—your data never leaves your machine unless you choose to share it
+- **Repository-specific rules**: FAIRy uses rulepacks tailored to specific repositories (GEO, SRA, etc.), so you know your data will meet their exact requirements
+- **Human-readable reports**: Get both detailed technical reports and easy-to-read summaries that you can share with researchers
+
+### What you'll learn in this guide
+
+This guide will walk you through:
+1. Installing FAIRy on your computer
+2. Running your first validation check
+3. Understanding the validation reports
+4. Using FAIRy with different types of datasets
+
+You don't need to be a programmer to use FAIRy—if you can use a command line (terminal) and follow step-by-step instructions, you can use FAIRy to validate your datasets.
+
+---
+
 ## Prerequisites
 
 - Python 3.10 or higher
