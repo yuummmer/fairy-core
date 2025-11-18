@@ -177,8 +177,11 @@ src/fairy/
   rulepacks/   # packaged rulepacks (CC0)
 demos/         # demo rulepacks / scratch data (not shipped)
 tests/         # unit + smoke tests
+decisions/     # Architecture Decision Records (ADRs)
 
 ```
+
+See [Architecture Decision Records](decisions/README.md) for major design decisions and rationale.
 ---
 ## Want a longer guide?
 

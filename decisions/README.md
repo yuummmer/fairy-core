@@ -10,6 +10,24 @@ Architecture Decision Records are a way to capture important architectural decis
 - **Grant writing**: Provide evidence of thoughtful design and planning
 - **Long-term memory**: Preserve institutional knowledge about why we did X instead of Y
 
+## When to create an ADR
+
+Create an ADR when making decisions that:
+
+- **Affect the architecture**: Changes to major components, data models, or system boundaries
+- **Have long-term impact**: Decisions that will be difficult or costly to reverse
+- **Involve trade-offs**: Choices where multiple valid alternatives exist
+- **Set precedents**: Patterns or approaches that will influence future decisions
+- **Require explanation**: Decisions that might seem surprising without context
+
+Examples:
+- ✅ Choosing a validation architecture (rulepacks vs runner)
+- ✅ Selecting a data format or schema design
+- ✅ Deciding on licensing strategy
+- ✅ Major API changes or deprecations
+- ❌ Routine bug fixes or small refactorings
+- ❌ Choosing between similar libraries for a single use case
+
 ## Format
 
 Each ADR follows a standard template with the following sections:
@@ -32,6 +50,7 @@ Each ADR follows a standard template with the following sections:
 2. Fill in the template with your decision details
 3. Update this README to include the new ADR in the index
 4. Set the status to "Proposed" initially, then update to "Accepted" after review
+5. Optionally link to related issues or PRs in the "Notes" section
 
 ## References
 
