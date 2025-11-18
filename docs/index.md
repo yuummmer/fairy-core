@@ -1,7 +1,7 @@
 # FAIRy-core Documentation
 
 Welcome! This folder contains the main docs for FAIRy-core, the local-first
-validation engine for FAIR, AI-ready research data.
+validation engine for FAIR research data.
 
 If you're new, start with:
 
@@ -14,7 +14,7 @@ If you're new, start with:
 
 - [Preflight report schema PRD](prd/prd-stabilize-json-report-schema.md)
 - [Architecture Decision Records](../decisions/README.md) – major design choices and rationale
-- (future) Error taxonomy
+- [Error taxonomy](error_taxonomy.md) – complete reference of all error codes and engine diagnostics
 - (future) Repository-specific checklists (ENA, GEO, museum data)
 
 ## Examples and katas

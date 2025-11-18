@@ -2,8 +2,8 @@
 
 🎋 Thanks for your interest in FAIRy-core!
 
-FAIRy-core is the local-first validation engine for FAIR, AI-ready research
-data. It powers rulepack-based checks and reports for datasets across domains
+FAIRy-core is the local-first validation engine for FAIR research data.
+It powers rulepack-based checks and reports for datasets across domains
 (omics, museums, etc.).
 
 We welcome contributions from data stewards, curators, researchers, and

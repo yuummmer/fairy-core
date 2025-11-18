@@ -95,7 +95,7 @@ But you don't need to do anything with it unless you want to use it for tracking
 ## Getting help
 
 If you encounter an error that's not covered here:
-1. Check the [Error taxonomy](../error_taxonomy.md) for a complete list of error codes
+1. Check the [Error taxonomy](error_taxonomy.md) for a complete list of error codes
 2. Review the `how_to_fix` field in the FAIRy report for specific guidance
 3. Consult the repository's submission guidelines for field requirements
 4. Open an issue in the FAIRy tracker if you believe the error is incorrect

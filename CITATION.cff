@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "FAIRy-core: local-first validator for FAIR, AI-ready research data"
+title: "FAIRy-core: local-first validator for FAIR research data"
 version: 0.2.0
 type: software
 authors:

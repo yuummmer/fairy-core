@@ -243,7 +243,7 @@ For information about maintainer roles and module stewards, see [`MAINTAINERS.md
 
 If you use FAIRy in a project, demo, or talk, please cite:
 
-FAIRy (v0.2). Local-first validator for FAIR, AI-ready research data.
+FAIRy (v0.2). Local-first validator for FAIR research data.
 FAIRy-core (engine): https://github.com/yuummmer/fairy-core
 FAIRy Lab (UI & labs): https://github.com/yuummmer/fairy-lab
 
