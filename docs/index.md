@@ -1,0 +1,21 @@
+# FAIRy-core Documentation
+
+Welcome! This folder contains the main docs for FAIRy-core, the local-first
+validation engine for FAIR, AI-ready research data.
+
+If you're new, start with:
+
+- [Getting started](getting-started.md) – install + first preflight run
+- [CLI usage](cli.md) – flags, multi-input, params, config files
+- [Reporting](reporting.md) – overview of the preflight report and how to read it
+
+## Reference
+
+- [Preflight report schema PRD](prd/prd-stabilize-json-report-schema.md)
+- [Architecture Decision Records](../decisions/README.md) – major design choices and rationale
+- (future) Error taxonomy
+- (future) Repository-specific checklists (ENA, GEO, museum data)
+
+## Examples and katas
+
+- [Kata gallery](katas/index.md) – small, focused examples using real-ish data
