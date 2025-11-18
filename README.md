@@ -113,16 +113,6 @@ For full documentation, see the [`docs/`](./docs) folder:
 - [Kata gallery](./docs/katas/index.md)
 
 ---
-## Documentation
-
-For full documentation, see the [`docs/`](./docs) folder:
-
-- [Getting started](./docs/getting-started.md)
-- [CLI usage](./docs/cli.md)
-- [Reporting](./docs/reporting.md)
-- [Kata gallery](./docs/katas/index.md)
-
----
 ## 🐧 Rulepacks (YAML)
 
 Example rulepack (minimal shape):
