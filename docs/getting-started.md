@@ -19,6 +19,24 @@ FAIRy is a validation tool that checks your research datasets against repository
 - **Repository-specific rules**: FAIRy uses rulepacks tailored to specific repositories (GEO, SRA, etc.), so you know your data will meet their exact requirements
 - **Human-readable reports**: Get both detailed technical reports and easy-to-read summaries that you can share with researchers
 
+### What FAIRy produces
+
+When FAIRy finishes, it produces an attested bundle that includes:
+
+- **`preflight_report.json`** — Full validation results with detailed findings
+- **`manifest.json`** — A structured manifest containing:
+  - `dataset_id`: A content-based fingerprint for this exact dataset (format: `"sha256:<64-hex-chars>"`)
+  - `created_at_utc`: When the bundle was created
+  - `fairy_version`: The version of FAIRy that created this bundle
+  - A list of files in the bundle
+
+You don't need to memorize the hash—it's mainly for:
+- Skipping repeated checks on identical data
+- Deduplicating bundles
+- Linking this dataset to other systems (submission forms, internal trackers)
+
+Think of `dataset_id` like a barcode for "this exact dataset version."
+
 ### What you'll learn in this guide
 
 This guide will walk you through:
@@ -315,3 +333,19 @@ Later, when you or a contributor do #27 and #10, they'll flesh this out.
 - **Kata gallery**: See the [Kata gallery](katas/index.md) for small, focused examples that show FAIRy-core validating real-ish datasets
 - **CLI reference**: See [CLI usage](./cli.md) for detailed command documentation
 - **Report structure**: See [Reporting](./reporting.md) for detailed information about report formats
+- **Understanding errors**: See [Understanding FAIRy errors](./understanding-errors.md) for steward-facing guidance on interpreting validation results
+
+---
+
+## 8. Example scenario: Coming back from vacation
+
+You validated a large museum dataset with FAIRy before going on leave. When you return, you see three different ZIP files named:
+- `museum_export_final_v3.zip`
+- `museum_export_final_v3_copy.zip`
+- `museum_export_final_v3_clean.zip`
+
+By opening each FAIRy bundle and checking the `dataset_id` in the `manifest.json`:
+- `sha256:abcd…` (appears twice)
+- `sha256:efgh…` (unique)
+
+You can see that two bundles are identical and already validated, and one is a truly new dataset version. You only need to review the report for the new `dataset_id`.

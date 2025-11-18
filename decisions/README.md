@@ -43,6 +43,7 @@ Each ADR follows a standard template with the following sections:
 |------|--------------------------------------------|----------|------------|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | 2025-11-17 |
 | [0002](0002-rulepacks-vs-runner-separation.md) | Rulepacks vs runner separation | Accepted | 2025-09-XX |
+| [0003](0003-dataset-bundle-manifest.md) | Dataset bundle manifest with hash-based dataset_id | Proposed | 2025-11-17 |
 
 ## Creating a new ADR
 

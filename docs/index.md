@@ -8,6 +8,7 @@ If you're new, start with:
 - [Getting started](getting-started.md) – install + first preflight run
 - [CLI usage](cli.md) – flags, multi-input, params, config files
 - [Reporting](reporting.md) – overview of the preflight report and how to read it
+- [Understanding FAIRy errors](understanding-errors.md) – steward-facing guide to interpreting validation results
 
 ## Reference
 
