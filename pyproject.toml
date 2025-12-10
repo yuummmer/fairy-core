@@ -14,7 +14,8 @@ dependencies = [
   "pandas>=2.1",
   "pyyaml>=6.0",
   "python-dateutil>=2.8",
-  "jsonschema>=4.0"
+  "jsonschema>=4.0",
+  "pydantic>=2,<3"
 ]
 
 # Optional extras you can add later:
