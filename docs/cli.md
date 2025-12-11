@@ -159,5 +159,6 @@ fairy rulepack --help
 ## See also
 
 - [Getting started](./getting-started.md) for installation and first steps
+- [Rule types reference](./rule-types.md) for complete documentation on all available rule types
 - [Reporting](./reporting.md) for report structure details
 - [Kata gallery](./katas/index.md) for example workflows

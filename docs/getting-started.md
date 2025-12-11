@@ -322,7 +322,7 @@ Later, when you or a contributor do #27 and #10, they'll flesh this out.
 
 ---
 ## 6. Next steps
-- Explore additional rule types and rulepacks
+- Explore additional rule types and rulepacks (see [Rule types reference](./rule-types.md))
 - Try a multi-input run (multiple tables) once you're comfortable.
 - If you run into rough edges, please open an issue in the tracker.
 
@@ -330,6 +330,7 @@ Later, when you or a contributor do #27 and #10, they'll flesh this out.
 
 ## 7. Learn more
 
+- **Rule types**: See the [Rule types reference](./rule-types.md) for complete documentation on all available rule types
 - **Kata gallery**: See the [Kata gallery](katas/index.md) for small, focused examples that show FAIRy-core validating real-ish datasets
 - **CLI reference**: See [CLI usage](./cli.md) for detailed command documentation
 - **Report structure**: See [Reporting](./reporting.md) for detailed information about report formats

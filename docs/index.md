@@ -12,6 +12,7 @@ If you're new, start with:
 
 ## Reference
 
+- [Rule types reference](rule-types.md) – complete guide to all available rule types and their configuration
 - [Preflight report schema PRD](prd/prd-stabilize-json-report-schema.md)
 - [Architecture Decision Records](../decisions/README.md) – major design choices and rationale
 - [Error taxonomy](error_taxonomy.md) – complete reference of all error codes and engine diagnostics

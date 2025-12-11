@@ -136,6 +136,10 @@ params: {}   # optional
 
 ```
 
+**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`
+
+See [Rule types reference](./docs/rule-types.md) for complete documentation on all rule types and their configuration options.
+
 ## Reports
 
 - **JSON**: Structured v1.0.0 schema reports with deterministic ordering (see [`schemas/preflight_report_v1.schema.json`](schemas/preflight_report_v1.schema.json) and [`docs/reporting.md`](docs/reporting.md))
