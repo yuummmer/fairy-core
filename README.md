@@ -109,6 +109,7 @@ For full documentation, see the [`docs/`](./docs) folder:
 
 - [Getting started](./docs/getting-started.md)
 - [CLI usage](./docs/cli.md)
+- [Parameter files](./docs/params.md)
 - [Reporting](./docs/reporting.md)
 - [Kata gallery](./docs/katas/index.md)
 

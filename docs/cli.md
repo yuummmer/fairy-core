@@ -92,7 +92,7 @@ fairy preflight \
 - `--files` (required): Path to files.tsv (tab-delimited file manifest)
 - `--out` (required): Path to write the JSON report
 - `--fairy-version`: Version string to embed in attestation (default: current FAIRy version)
-- `--param-file`: Path to YAML file with tunable parameters
+- `--param-file`: Path to YAML file with tunable parameters (see [Parameter files](./params.md) for details)
 
 The command also generates a Markdown report alongside the JSON (same path with `.md` extension).
 
@@ -159,6 +159,7 @@ fairy rulepack --help
 ## See also
 
 - [Getting started](./getting-started.md) for installation and first steps
+- [Parameter files](./params.md) for using `--param-file` to pass tunable parameters
 - [Rule types reference](./rule-types.md) for complete documentation on all available rule types
 - [Reporting](./reporting.md) for report structure details
 - [Kata gallery](./katas/index.md) for example workflows

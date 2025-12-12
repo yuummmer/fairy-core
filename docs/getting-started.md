@@ -304,21 +304,20 @@ fairy validate path/to/folder --rulepack path/to/rulepack.yaml --report-json out
 ---
 ## 5. Params/config files (--param-file)
 
-TODO: Add detailed guide (see issue Doc: Params file guide (--param-file)).
+You can pass tunable parameters to FAIRy validation runs using the `--param-file` flag. Parameters are loaded from a YAML file and injected into the validation context at `ctx["params"]`.
 
-Planned content:
-
-- What a params file looks like (YAML/JSON).
-- Which settings can be moved into it (inputs, rulepacks, params, output).
-- Example:
+Example:
 
 ```bash
-fairy-preflight --param-file configs/example-params.yaml
+fairy preflight \
+  --rulepack path/to/rulepack.json \
+  --samples path/to/samples.tsv \
+  --files path/to/files.tsv \
+  --out path/to/report.json \
+  --param-file demos/params/penguins.yml
 ```
 
-For now, see the CLI --help output for the most up-to-date flags.
-
-Later, when you or a contributor do #27 and #10, they'll flesh this out.
+For detailed information about parameter files, including format, error handling, and how to access parameters in rules, see the [Parameter files guide](./params.md).
 
 ---
 ## 6. Next steps
