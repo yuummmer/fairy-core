@@ -1,0 +1,3 @@
+sample_id	sample_title	organism	library_strategy	molecule	instrument_model	tissue	cell_line	cell_type	collection_date
+S1	        liver sample	human	RNA-Seq	total RNA	Illumina NovaSeq	liver			10/3/25
+S2	        heart	        human	RNA-Seq	total RNA	Illumina NovaSeq	heart			2025-10-02
