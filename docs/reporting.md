@@ -160,6 +160,8 @@ When a rule is configured with `remediation_link_column`, the evidence includes 
   - **`row`** (integer): 1-based row number
   - **`url`** (string): URL value from the remediation column (preserved as-is, may need `https://` prefix added for markdown rendering)
 
+**Note**: While JSON reports include all remediation links, markdown reports are limited to the first 20 links per rule to keep report file sizes manageable. When more than 20 links exist, the markdown report shows a message indicating how many total links are available.
+
 ## Migration from Legacy Format
 
 The legacy report structure (`attestation` + `findings`) has been replaced with the v1.0.0 schema. Use this mapping:
@@ -235,3 +237,5 @@ When rules include remediation links, markdown reports render them as clickable 
 ```
 
 URLs starting with `www.` automatically get an `https://` prefix for proper markdown link rendering. Empty or missing remediation link values are skipped.
+
+**Link limit**: To keep markdown report files manageable, remediation links are limited to the first 20 links per rule. When a rule has more than 20 remediation links, only the first 20 are shown in the markdown report, with a message indicating the total count (e.g., "_Showing first 20 remediation links (of 45)._"). All links remain available in the JSON report.
