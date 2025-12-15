@@ -153,6 +153,8 @@ def run_rulepack(
             severity = (r.get("severity", "fail") or "fail").lower()
             status = "PASS"
             evidence: dict[str, Any] = {}
+            rem_col = r.get("remediation_link_column")
+            rem_label = r.get("remediation_link_label")
 
             if rtype not in CHECK_TYPES:
                 status, evidence = "FAIL", {"error": "unknown_rule_type", "type": rtype}
@@ -160,24 +162,28 @@ def run_rulepack(
                 try:
                     if rtype in ("dup", "no_duplicate_rows"):
                         keys = r.get("keys", [])
-                        status, evidence = check_dup(df, keys, severity)
+                        status, evidence = check_dup(df, keys, severity, rem_col, rem_label)
 
                     elif rtype == "unique":
                         cols = r.get("columns", [])
-                        status, evidence = check_unique(df, cols, severity)
+                        status, evidence = check_unique(df, cols, severity, rem_col, rem_label)
 
                     elif rtype == "enum":
                         col = r.get("column")
                         allow = r.get("allow", [])
                         normalize = r.get("normalize", {}) or {}
-                        status, evidence = check_enum(df, col, allow, normalize, severity)
+                        status, evidence = check_enum(
+                            df, col, allow, normalize, severity, rem_col, rem_label
+                        )
 
                     elif rtype == "range":
                         col = r.get("column")
                         mn = r.get("min", None)
                         mx = r.get("max", None)
                         inclusive = bool(r.get("inclusive", True))
-                        status, evidence = check_range(df, col, mn, mx, inclusive, severity)
+                        status, evidence = check_range(
+                            df, col, mn, mx, inclusive, severity, rem_col, rem_label
+                        )
 
                     elif rtype == "foreign_key":
                         frm = r.get("from", {}) or {}
@@ -193,16 +199,18 @@ def run_rulepack(
 
                     elif rtype == "required":
                         cols = r.get("columns", []) or r.get("cols", [])
-                        status, evidence = check_required(df, cols, severity)
+                        status, evidence = check_required(df, cols, severity, rem_col, rem_label)
 
                     elif rtype == "url":
                         col = r.get("column")
                         schemes = r.get("scheme", None)
-                        status, evidence = check_url(df, col, schemes, severity)
+                        status, evidence = check_url(df, col, schemes, severity, rem_col, rem_label)
 
                     elif rtype == "non_empty_trimmed":
                         col = r.get("column")
-                        status, evidence = check_non_empty_trimmed(df, col, severity)
+                        status, evidence = check_non_empty_trimmed(
+                            df, col, severity, rem_col, rem_label
+                        )
 
                 except Exception as e:
                     status, evidence = "FAIL", {"error": "runtime_error", "message": str(e)}
@@ -243,37 +251,111 @@ def _status_from_severity(sev: str) -> str:
     return "FAIL" if (sev or "fail") == "fail" else "WARN"
 
 
-def check_dup(df: pd.DataFrame, keys: list[str], severity: str) -> tuple[str, dict[str, Any]]:
+def _href(url: str) -> str:
+    """Make URLs clickable in Markdown/HTML without mutating stored raw data."""
+    u = (url or "").strip()
+    if not u:
+        return u
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", u):
+        return u  # already has a scheme like http:, https:, mailto:
+    return f"https://{u}"
+
+
+def _collect_remediation_links(
+    df: pd.DataFrame,
+    rows_1based: list[int],
+    remediation_col: str | None,
+    remediation_label: str | None,
+) -> dict[str, Any] | None:
+    if not remediation_col:
+        return None
+    if remediation_col not in df.columns:
+        return None
+
+    links: list[dict[str, Any]] = []
+    for r1 in rows_1based:
+        r0 = int(r1) - 1
+        if r0 < 0 or r0 >= len(df):
+            continue
+        raw = df.iloc[r0][remediation_col]
+        if pd.isna(raw):
+            continue
+        url = str(raw).strip()
+        if not url:
+            continue
+        links.append({"row": int(r1), "url": url})
+
+    if not links:
+        return None
+
+    out: dict[str, Any] = {"column": remediation_col, "links": links}
+    if remediation_label:
+        out["label"] = remediation_label
+    return out
+
+
+def check_dup(
+    df: pd.DataFrame,
+    keys: list[str],
+    severity: str,
+    rem_col=None,
+    rem_label=None,
+) -> tuple[str, dict[str, Any]]:
     if not keys:
         return "FAIL", {"error": "config_missing_keys"}
     for k in keys:
         if k not in df.columns:
             return "FAIL", {"error": "column_not_found", "column": k}
+
     dup_mask = df.duplicated(subset=keys, keep="first")
-    dup_rows = df.index[dup_mask].tolist()
-    if dup_rows:
-        return _status_from_severity(severity), {
-            "duplicates": [{"rows": _rows_1based(dup_rows)}],
-            "count": len(dup_rows),
+    dup_pos = dup_mask.to_numpy().nonzero()[0].tolist()
+
+    if dup_pos:
+        rows = _rows_sorted_1based(dup_pos)
+
+        ev = {
+            "duplicates": [{"rows": rows}],
+            "count": len(rows),
         }
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+
     return "PASS", {"count": 0}
 
 
-def check_unique(df: pd.DataFrame, columns: list[str], severity: str) -> tuple[str, dict[str, Any]]:
+def check_unique(
+    df: pd.DataFrame, columns: list[str], severity: str, rem_col=None, rem_label=None
+) -> tuple[str, dict[str, Any]]:
     if not columns:
         return "FAIL", {"error": "config_missing_columns"}
     for c in columns:
         if c not in df.columns:
             return "FAIL", {"error": "column_not_found", "column": c}
+
     # composite unique via tuple
     series = df[columns].astype(object).apply(tuple, axis=1)
     dup_mask = series.duplicated(keep="first")
-    dup_rows = df.index[dup_mask].tolist()
-    if dup_rows:
-        return _status_from_severity(severity), {
-            "duplicates": [{"rows": _rows_1based(dup_rows)}],
-            "count": len(dup_rows),
+
+    dup_pos = dup_mask.to_numpy().nonzero()[0].tolist()
+
+    if dup_pos:
+        rows = _rows_sorted_1based(dup_pos)
+
+        ev = {
+            "duplicates": [{"rows": rows}],
+            "count": len(rows),
         }
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+
     return "PASS", {"count": 0}
 
 
@@ -289,7 +371,13 @@ def _normalize(v, norm: dict[str, Any]):
 
 
 def check_enum(
-    df: pd.DataFrame, column: str, allow: list[Any], normalize: dict[str, Any], severity: str
+    df: pd.DataFrame,
+    column: str,
+    allow: list[Any],
+    normalize: dict[str, Any],
+    severity: str,
+    rem_col=None,
+    rem_label=None,
 ) -> tuple[str, dict[str, Any]]:
     if not column:
         return "FAIL", {"error": "config_missing_column"}
@@ -297,30 +385,49 @@ def check_enum(
         return "FAIL", {"error": "column_not_found", "column": column}
     if not isinstance(allow, list) or not allow:
         return "FAIL", {"error": "config_missing_allow"}
+
     # normalize allow list if requested
     norm_allow = [_normalize(a, normalize) for a in allow] if normalize else allow
-    out = []
+
+    out: list[int] = []
     for i, v in enumerate(df[column].tolist()):
         vv = _normalize(v, normalize or {})
         if pd.isna(vv) or vv not in norm_allow:
             out.append(i)
+
     if out:
-        return _status_from_severity(severity), {
-            "out_of_set": {"count": len(out), "rows": _rows_1based(out)}
-        }
+        rows = _rows_1based(out)
+
+        ev = {"out_of_set": {"count": len(out), "rows": rows}}
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+
     return "PASS", {"normalized": bool(normalize)}
 
 
 def check_range(
-    df: pd.DataFrame, column: str, mn, mx, inclusive: bool, severity: str
+    df: pd.DataFrame,
+    column: str,
+    mn,
+    mx,
+    inclusive: bool,
+    severity: str,
+    rem_col=None,
+    rem_label=None,
 ) -> tuple[str, dict[str, Any]]:
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
         return "FAIL", {"error": "column_not_found", "column": column}
+
     # numeric-only MVP; datetime can be added later
     series = pd.to_numeric(df[column], errors="coerce")
-    out = []
+
+    out: list[int] = []
     for i, val in enumerate(series.tolist()):
         if pd.isna(val):
             out.append(i)
@@ -335,10 +442,18 @@ def check_range(
                 out.append(i)
             if not inclusive and val >= mx:
                 out.append(i)
+
     if out:
-        return _status_from_severity(severity), {
-            "out_of_bounds": {"count": len(out), "rows": _rows_1based(out)}
-        }
+        rows = _rows_1based(out)
+
+        ev = {"out_of_bounds": {"count": len(out), "rows": rows}}
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+
     return "PASS", {"count": 0}
 
 
@@ -396,7 +511,7 @@ def _rows_sorted_1based(idx_like) -> list[int]:
 
 
 def check_required(
-    df: pd.DataFrame, columns: list[str], severity: str
+    df: pd.DataFrame, columns: list[str], severity: str, rem_col=None, rem_label=None
 ) -> tuple[str, dict[str, Any]]:
     if not columns:
         return "FAIL", {"error": "config_missing_columns"}
@@ -412,7 +527,8 @@ def check_required(
         s = df[c]
         mask = s.isna() | s.astype(str).str.strip().eq("")
         if mask.any():
-            nullish_rows[c] = _rows_sorted_1based(df.index[mask].tolist())
+            bad_pos = mask.to_numpy().nonzero()[0].tolist()
+            nullish_rows[c] = _rows_sorted_1based(bad_pos)
 
     if nullish_rows:
         ev["nullish"] = {
@@ -422,6 +538,10 @@ def check_required(
         # Count of cells flagged (flat cell count)
         # Row-level counts are fine too; cell count is more informative here.
         ev["count"] = int(sum(len(v) for v in nullish_rows.values()))
+        failing_rows = sorted({r for rows in nullish_rows.values() for r in rows})
+        rem = _collect_remediation_links(df, failing_rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
 
     if ev:
         return _status_from_severity(severity), ev
@@ -449,40 +569,67 @@ def _url_syntax_ok(val: Any, schemes: set[str]) -> bool:
 
 
 def check_url(
-    df: pd.DataFrame, column: str, schemes: list[str] | None, severity: str
+    df: pd.DataFrame,
+    column: str,
+    schemes: list[str] | None,
+    severity: str,
+    rem_col=None,
+    rem_label=None,
 ) -> tuple[str, dict[str, Any]]:
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
         return "FAIL", {"error": "column_not_found", "column": column}
+
     allow = set(schemes or ["http", "https"])
     s = df[column]
     bad_mask = ~s.apply(lambda v: _url_syntax_ok(v, allow))
+
     if bad_mask.any():
-        rows = _rows_sorted_1based(df.index[bad_mask].tolist())
-        return _status_from_severity(severity), {
+        bad_pos = bad_mask.to_numpy().nonzero()[0].tolist()
+        rows = _rows_sorted_1based(bad_pos)
+
+        ev = {
             "invalid_url_rows": rows,
             "count": len(rows),
             "schemes": sorted(allow),
         }
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+
     return "PASS", {"count": 0}
 
 
 def check_non_empty_trimmed(
-    df: pd.DataFrame, column: str, severity: str
+    df: pd.DataFrame, column: str, severity: str, rem_col=None, rem_label=None
 ) -> tuple[str, dict[str, Any]]:
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
         return "FAIL", {"error": "column_not_found", "column": column}
+
     s = df[column].astype("string")
     bad_mask = s.isna() | (s.str.strip().str.len() == 0)
+
     if bad_mask.any():
-        rows = _rows_sorted_1based(df.index[bad_mask].tolist())
-        return _status_from_severity(severity), {
+        bad_pos = bad_mask.to_numpy().nonzero()[0].tolist()
+        rows = _rows_sorted_1based(bad_pos)
+
+        ev = {
             "empty_or_whitespace_rows": rows,
             "count": len(rows),
         }
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+
     return "PASS", {"count": 0}
 
 
@@ -520,6 +667,15 @@ def write_markdown(report: dict[str, Any]) -> str:
         for rr in sorted(res.get("rules", []), key=lambda r: r.get("id", "")):
             out.append(f"### [{rr.get('status')}] {rr.get('id')} — {rr.get('type')}")
             ev = rr.get("evidence", {})
+
+            rem = ev.get("remediation")
+            if rem and rem.get("links"):
+                label = rem.get("label") or "Open record"
+                out.append("Remediation:")
+                for link in rem["links"][:20]:
+                    out.append(f"- Row {link['row']}: [{label}]({_href(link['url'])})")
+                out.append("")
+
             if "duplicates" in ev:
                 for d in ev["duplicates"]:
                     out.append(f"Duplicates at rows {d.get('rows', [])}")

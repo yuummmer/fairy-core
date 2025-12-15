@@ -32,4 +32,12 @@ def load_json(path: Path):
 
 
 def normalize_json(path: Path):
-    return _strip_volatile(load_json(path))
+    obj = load_json(path)
+
+    # normalize version bumps so goldens don't churn
+    try:
+        obj["_legacy"]["attestation"]["fairy_version"] = "<redacted>"
+    except Exception:
+        pass
+
+    return _strip_volatile(obj)

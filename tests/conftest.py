@@ -25,17 +25,17 @@ def rulepack_path() -> Path:
 @pytest.fixture(scope="session")
 def samples_path() -> Path:
     # default demo location you created earlier
-    p = PROJECT_ROOT / "demos" / "scratchrun" / "samples.tsv"
+    p = PROJECT_ROOT / "tests" / "fixtures" / "preflight" / "samples.tsv"
     if not p.exists():
-        pytest.skip("demos/scratchrun/samples.tsv not found — add demo TSVs or skip.")
+        pytest.skip("tests/fixtures/preflight/samples.tsv not found")
     return p
 
 
 @pytest.fixture(scope="session")
 def files_path() -> Path:
-    p = PROJECT_ROOT / "demos" / "scratchrun" / "files.tsv"
+    p = PROJECT_ROOT / "tests" / "fixtures" / "preflight" / "files.tsv"
     if not p.exists():
-        pytest.skip("demos/scratchrun/files.tsv not found — add demo TSVs or skip.")
+        pytest.skip("tests/fixtures/preflight/files.tsv not found")
     return p
 
 
