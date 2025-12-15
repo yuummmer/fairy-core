@@ -26,7 +26,7 @@ def emit_markdown(md_path: Path, payload: dict) -> None:
         for w in checks:
             lines.append(f"- {w.get('code', 'warn')} - {w.get('message', '')}")
     md_path.parent.mkdir(parents=True, exist_ok=True)
-    md_path.write_text("\n".join(lines), encoding="utf-8")
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def emit_preflight_markdown(
