@@ -22,6 +22,8 @@ CHECK_TYPES = {
     "non_empty_trimmed",
 }
 
+MAX_REMEDIATION_LINKS = 20
+
 
 def _extract_meta(rulepack: dict) -> tuple[str, str]:
     # New schema (id/version at top-level)
@@ -674,6 +676,19 @@ def write_markdown(report: dict[str, Any]) -> str:
                 out.append("Remediation:")
                 for link in rem["links"][:20]:
                     out.append(f"- Row {link['row']}: [{label}]({_href(link['url'])})")
+
+                max_links = MAX_REMEDIATION_LINKS
+                shown = rem["links"][:max_links]
+
+                out.append("Remediation:")
+                for link in shown:
+                    out.append(f"- Row {link['row']}: [{label}]({_href(link['url'])})")
+
+                if len(rem["links"]) > max_links:
+                    out.append(
+                        f"_Showing first {max_links} remediation links (of {len(rem['links'])})._"
+                    )
+
                 out.append("")
 
             if "duplicates" in ev:
