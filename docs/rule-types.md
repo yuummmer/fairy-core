@@ -39,6 +39,21 @@ Ensures that specified columns exist in the table and that all rows have non-emp
       - creator
 ```
 
+### Example with remediation links
+
+When datasets include a column with external URLs (e.g., portal links), you can configure remediation links to help users fix validation failures:
+
+```yaml
+- id: primary_id_required
+  type: required
+  severity: fail
+  columns: ["primary_id"]
+  remediation_link_column: "external_url"
+  remediation_link_label: "Open record in portal"
+```
+
+When this rule fails, the report includes remediation links for each failing row. In markdown reports, these appear as clickable links: `[Open record in portal](https://example.com/record/123)`.
+
 ### What it checks
 
 - The specified columns exist in the table
@@ -335,6 +350,8 @@ All rules follow this basic structure:
   - `fail`: Rule violations block submission (`submission_ready: false`)
   - `warn`: Rule violations are reported but don't block submission
 - `config` (dict, required): Type-specific configuration (always includes `pattern`)
+- `remediation_link_column` (string, optional): Column name containing URLs for fixing failures. When a rule fails, values from this column are included in the failure evidence so users can click through to fix issues in the source system.
+- `remediation_link_label` (string, optional): Human-readable label for the remediation link (e.g., "Open record in portal"). Defaults to the column name if not specified.
 
 ### File patterns
 

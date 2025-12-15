@@ -131,6 +131,35 @@ Array of rule results, each containing:
 - **`count`** (integer): Number of violations (0 if level is "pass")
 - **`samples`** (array): Up to 10 sample violations, sorted deterministically
 
+#### Remediation links
+
+When a rule is configured with `remediation_link_column`, the evidence includes remediation information:
+
+```json
+{
+  "evidence": {
+    "nullish": {
+      "columns": ["primary_id"],
+      "rows_by_column": {"primary_id": [1, 3]}
+    },
+    "remediation": {
+      "column": "external_url",
+      "label": "Open record in portal",
+      "links": [
+        {"row": 1, "url": "https://portal.example.com/record/1"},
+        {"row": 3, "url": "https://portal.example.com/record/3"}
+      ]
+    }
+  }
+}
+```
+
+- **`remediation.column`** (string): The column name containing remediation URLs
+- **`remediation.label`** (string): Human-readable label for the link
+- **`remediation.links`** (array): List of remediation links, one per failing row
+  - **`row`** (integer): 1-based row number
+  - **`url`** (string): URL value from the remediation column (preserved as-is, may need `https://` prefix added for markdown rendering)
+
 ## Migration from Legacy Format
 
 The legacy report structure (`attestation` + `findings`) has been replaced with the v1.0.0 schema. Use this mapping:
@@ -195,3 +224,14 @@ jsonschema.validate(instance=report, schema=schema)
 ## Markdown Reports
 
 The CLI also generates human-readable Markdown reports alongside JSON. See the `--out` option in `fairy preflight --help`.
+
+### Remediation links in markdown
+
+When rules include remediation links, markdown reports render them as clickable links:
+
+```markdown
+- row 1, column 'primary_id', message: Missing value in required field 'primary_id.'
+  [Open record in portal](https://portal.example.com/record/1)
+```
+
+URLs starting with `www.` automatically get an `https://` prefix for proper markdown link rendering. Empty or missing remediation link values are skipped.
