@@ -673,9 +673,6 @@ def write_markdown(report: dict[str, Any]) -> str:
             rem = ev.get("remediation")
             if rem and rem.get("links"):
                 label = rem.get("label") or "Open record"
-                out.append("Remediation:")
-                for link in rem["links"][:20]:
-                    out.append(f"- Row {link['row']}: [{label}]({_href(link['url'])})")
 
                 max_links = MAX_REMEDIATION_LINKS
                 shown = rem["links"][:max_links]
