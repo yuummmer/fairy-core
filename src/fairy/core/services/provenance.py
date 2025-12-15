@@ -15,15 +15,37 @@ from pathlib import Path
 from typing import Any
 
 
-def sha256_file(p: Path) -> str:
+def sha256_file(p: Path, *, newline_stable: bool = False) -> str:
     """
     Return sha256 hex digest of file at path p.
-    Chunked so we don't load huge files fully into memory.
+    If newline_stable=True, normalize CRLF/CR to LF before hashing..
     """
     h = sha256()
+
+    if not newline_stable:
+        with p.open("rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    pending_cr = False
     with p.open("rb") as f:
         for chunk in iter(lambda: f.read(65536), b""):
+            if pending_cr:
+                chunk = b"\r" + chunk
+                pending_cr = False
+
+            if chunk.endswith(b"\r"):
+                chunk = chunk[:-1]
+                pending_cr = True
+
+            chunk = chunk.replace(b"\r\n", b"\n")
+            chunk = chunk.replace(b"\r", b"\n")
             h.update(chunk)
+
+    if pending_cr:
+        h.update(b"\n")
+
     return h.hexdigest()
 
 
@@ -40,7 +62,7 @@ def summarize_tabular(p: Path) -> dict[str, Any]:
     If that fails or isn't installed, we fall back to simple TSV splitter.
     """
     path_str = str(p)
-    file_hash = sha256_file(p)
+    file_hash = sha256_file(p, newline_stable=True)
 
     header: list[str] = []
     n_cols = 0
@@ -136,7 +158,7 @@ def compute_dataset_id(inputs_meta: dict[str, dict[str, Any]]) -> str:
                             f"Input '{name}': path '{path_str}' does not exist. "
                             "Cannot compute sha256."
                         )
-                    sha256_val = sha256_file(path_obj)
+                    sha256_val = sha256_file(path_obj, newline_stable=True)
                 except Exception as e:
                     raise ValueError(
                         f"Input '{name}' lacks sha256 and cannot compute from path "

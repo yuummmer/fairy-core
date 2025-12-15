@@ -43,6 +43,6 @@ def test_emit_preflight_markdown_creates_file(tmp_path: Path):
     }
     emit_preflight_markdown(md, report, resolved_codes=[], prior_codes=None)
     assert md.exists()
-    txt = md.read_text()
+    txt = md.read_text(encoding="utf-8")
     assert "FAIRy Preflight Report" in txt
     assert "submission_ready" in txt
