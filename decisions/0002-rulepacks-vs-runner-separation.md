@@ -121,6 +121,7 @@ The alternative of hardcoding validation logic for each repository would require
 ## Notes
 
 - The runner currently supports these check types: `enum`, `required`, `unique`, `foreign_key`, `range`, `url`, `non_empty_trimmed`, `no_duplicate_rows` (aliased as `dup`)
+- **Remediation links**: Rules can optionally specify `remediation_link_column` and `remediation_link_label` to include clickable links in validation reports. These links are extracted from the specified column for each failing row and appear in both JSON and Markdown report formats. Supported for all check types except `foreign_key`.
 - Rulepacks are stored in `src/fairy/rulepacks/` and licensed CC0-1.0 for maximum reusability
 - The runner is in `src/fairy/validation/rulepack_runner.py` and implements the core validation loop
 - There is ongoing work to unify the two runner implementations (`rulepack_runner.py` and `validator.py`) to reduce duplication

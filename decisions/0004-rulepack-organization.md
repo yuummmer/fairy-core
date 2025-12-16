@@ -40,6 +40,42 @@ We will organize rulepacks using a clear repository structure, semantic versioni
 
 This structure keeps licensing and sharing clean: public baselines remain reusable, while client overlays stay private.
 
+### Distribution model (two-tier)
+
+We use a practical hybrid model that works well for open contribution:
+
+**Tier 1: Community rulepack repos** (where contributors work):
+- Separate repositories, CC0-licensed, owned by individuals, organizations, or the community
+- Examples: `fairy-rulepack-darwincore`, `fairy-rulepack-client-herbarium`, `fairy-rulepack-obis-dwc`
+- This is where PRs happen, issues live, and docs evolve
+- Enables external contribution velocity without requiring fairy-core maintainer involvement
+
+**Tier 2: Verified snapshots inside fairy-core**:
+- Periodically "import" tagged releases from community repos into `src/fairy/rulepacks/<PACK_ID>/vX_Y_Z.yaml`
+- These become the batteries-included rulepacks that ship with the CLI
+- Only bring in versions that are comfortable to support
+- Provides stable "official" rulepacks with clean support boundaries
+
+**Vendoring approach:**
+- **Git subtree** (recommended): Pulls rulepack repos into a subfolder while keeping history. Great for "import release tag" workflows.
+- **Simple copy on release** (for early stage): Copy `v0_1_0.yaml` into core, record upstream repo + tag in `SOURCE.txt` or folder `README.md`
+- **Submodules**: Avoid unless already using submodules (usually annoying)
+
+**Governance:**
+- External rulepack repos should include:
+  - `README.md`: What it validates, example inputs/outputs
+  - `CHANGELOG.md`: Version history
+  - `LICENSE`: CC0
+  - Minimal CI: Schema validation and demo run producing golden JSON/MD output
+- In fairy-core, treat vendored rulepacks as "compiled artifacts":
+  - Don't accept random edits in core without pointing back to upstream
+  - Edits should be made upstream, then re-imported
+
+This model provides:
+- External contribution velocity ✅
+- Stable "official" rulepacks shipped with the tool ✅
+- Clean support boundaries ✅
+
 ### Versioning
 
 **Rulepack versions:**
@@ -169,7 +205,9 @@ Same structure, but data can be minimal or redacted to protect client informatio
 - Prefixed rule IDs prevent collisions and make composition safe
 - Explicit override mechanism provides safety while maintaining flexibility
 - Standard layout makes rulepacks easier to discover and use
-- Supports community contributions to public rulepacks
+- Two-tier distribution model enables community contribution velocity while maintaining stable batteries-included rulepacks
+- Supports community contributions to public rulepacks through external repos
+- Multiple rulepacks can be composed together for comprehensive validation (e.g., base hygiene + repository-specific + domain-specific)
 
 ### Negative
 
@@ -245,6 +283,8 @@ Same structure, but data can be minimal or redacted to protect client informatio
 
 - This ADR establishes the foundation for community rulepack support
 - **Collision policy decision**: Collisions error unless `override: true` (chosen over always-erroring on collisions)
+- **Distribution model**: Two-tier model (community repos + verified snapshots in fairy-core) enables contribution velocity while maintaining stable batteries-included rulepacks
+- **Multiple rulepack usage**: Users will realistically use multiple rulepacks together (e.g., base CSV hygiene + repository-specific pack + domain pack). Rule IDs must be namespaced (e.g., `dwc_*`, `geo_*`, `client_*`) to prevent collisions. The CLI will support multiple `--rulepack` flags or rulepack composition via `includes`.
 - Implementation should include both collision detection and the `override: true` mechanism
 - Consider adding semver range support for `includes` refs in the future (e.g., `@^0.2.0`)
 - Repository layout may evolve based on community feedback
