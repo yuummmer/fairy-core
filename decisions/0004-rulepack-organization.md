@@ -1,7 +1,7 @@
 # ADR-0004: Rulepack organization and composition
 
 **Status**: Accepted
-**Date**: 2025-01-27
+**Date**: 2025-12-15
 **Deciders**: Project maintainers
 **Tags**: rulepacks, versioning, composition, community
 
