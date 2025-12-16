@@ -78,6 +78,19 @@ def test_column_url_schemes_and_syntax_only():
     assert [s.row for s in res.samples] == [3, 4]
 
 
+def test_column_url_accepts_www_without_scheme_by_normalizing():
+    df = pd.DataFrame({"u": ["www.example.org/path", "www.example.org", None]})
+    res = column_url(df, column="u", schemes=("http", "https"))
+    # After normalization, www.* should be treated as https://www.*
+    assert res is None
+
+
+def test_column_url_trims_whitespace_before_validation():
+    df = pd.DataFrame({"u": [" https://example.org/x ", "  http://example.org/y  ", None]})
+    res = column_url(df, column="u", schemes=("http", "https"))
+    assert res is None
+
+
 def test_column_non_empty_trimmed_warns_on_blank_and_na():
     df = pd.DataFrame({"t": ["  ", "x", None, " y "]})
     res = column_non_empty_trimmed(df, column="t", level="warn")

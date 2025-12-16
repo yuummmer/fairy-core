@@ -274,14 +274,22 @@ def _url_ok(v: Any, schemes: set[str]) -> bool:
     if pd.isna(v):
         return True
     try:
-        s = str(v)
+        s = str(v).strip()
     except Exception:
         return False
+
+    if s.lower().startswith("www."):
+        s = "https://" + s
+
     parts = urlsplit(s)
-    if not parts.scheme or not _SCHEME_RE.match(parts.scheme):
+    scheme = (parts.scheme or "").lower()
+
+    if not scheme or not _SCHEME_RE.match(scheme):
         return False
-    if schemes and parts.scheme not in schemes:
+
+    if schemes and scheme not in {x.lower() for x in schemes}:
         return False
+
     return bool(parts.netloc or parts.path)
 
 

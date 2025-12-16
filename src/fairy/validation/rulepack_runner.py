@@ -6,6 +6,7 @@ from fnmatch import fnmatch
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import pandas as pd
 
@@ -555,18 +556,25 @@ _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
 
 def _url_syntax_ok(val: Any, schemes: set[str]) -> bool:
     if pd.isna(val):
-        return True  # treat NA as not-a-violation; you can change later if desired
+        return True
+
     try:
-        s = str(val)
+        s = str(val).strip()
     except Exception:
         return False
-    from urllib.parse import urlsplit
+
+    if s.lower().startswith("www."):
+        s = "https://" + s
 
     parts = urlsplit(s)
-    if not parts.scheme or not _SCHEME_RE.match(parts.scheme):
+    scheme = (parts.scheme or "").lower()
+
+    if not scheme or not _SCHEME_RE.match(scheme):
         return False
-    if schemes and parts.scheme not in schemes:
+
+    if schemes and scheme not in {x.lower() for x in schemes}:
         return False
+
     return bool(parts.netloc or parts.path)
 
 
