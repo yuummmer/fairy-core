@@ -53,14 +53,6 @@ def _save_last_codes(cache_path: Path, codes: set[str]) -> None:
 def main(args) -> int:
     # tolerate missing attributes from test dummy args
     param_file = getattr(args, "param_file", None)
-    out_json = getattr(args, "out_json", None) or getattr(args, "out", None)
-    out_md = getattr(args, "out_md", None)
-
-    # Optional CLI fields for the "real" path
-    rulepack = getattr(args, "rulepack", None)
-    samples = getattr(args, "samples", None)
-    files = getattr(args, "files", None)
-    fairy_ver = getattr(args, "fairy_version", FAIRY_VERSION)
 
     # load params file if provided
     try:
