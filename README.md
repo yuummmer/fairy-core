@@ -1,6 +1,6 @@
 <!-- Project badges -->
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
-[![Rulepacks: CC0-1.0](https://img.shields.io/badge/Rulepacks-CC0%E2%80%911.0-lightgrey.svg)](src/fairy/rulepacks/LICENSE)
+[![Rulepacks: CC0-1.0](https://img.shields.io/badge/Rulepacks-CC0%E2%80%911.0-lightgrey.svg)](rulepacks/examples/LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](#)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](.pre-commit-config.yaml)
 
@@ -13,6 +13,17 @@
 
 Local-first validator and packager for FAIR-compliant research datasets.
 This repo contains the **core validation engine** and **CLI** (e.g., `fairy preflight`, `fairy validate`).
+
+## 📦 Official rulepack repositories (CC0)
+
+Rulepacks are versioned and released independently from `fairy-core`.
+
+- **GEO rulepacks**: [fairy-rulepacks-geo](https://github.com/yuummmer/fairy-rulepacks-geo)
+  - `rulepacks/geo_bulk_seq/` (available now)
+  - `rulepacks/geo_single_cell/` (planned)
+
+This repo (`fairy-core`) keeps only small **example/kata** rulepacks under `rulepacks/examples/`.
+
 
 - ✅ Validates tabular metadata against repository-specific **rulepacks**
 - ✅ Emits **machine-readable** (JSON) and **human-readable** (Markdown) reports
@@ -81,20 +92,21 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 # 1) Check CLI (after install, use: fairy --help)
-python -m fairy.cli --help
-python -m fairy.cli --version
+fairy --help
+fairy --version
 
 # 2) Preflight (GEO bulk RNA-seq; expects JSON rulepack)
-python -m fairy.cli preflight \
-  --rulepack src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json \
-  --samples demos/scratchrun/samples.tsv \
-  --files   demos/scratchrun/files.tsv \
-  --out     .tmp/report.json
-cat .tmp/report.md   # human summary
+# (rulepack lives in the public CC0 repo fairy-rulepacks-geo)
+fairy preflight \
+  --rulepack /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json \
+  --samples  /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/samples.tsv \
+  --files    /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/files.tsv \
+  --out      .tmp/geo_bulk_seq_report.json
+cat .tmp/geo_bulk_seq_report.md   # human summary
 
 # 3) Validate with custom rulepack (YAML or JSON)
-python -m fairy.cli validate \
-  --rulepack demos/rulepacks/penguins.yml \
+fairy validate \
+  --rulepack rulepacks/examples/penguins/rulepack.yml \
   --inputs default=tests/fixtures/penguins_small.csv \
   --report-json .tmp/penguins_report.json
 
@@ -169,7 +181,8 @@ src/fairy/
   cli/         # CLI entrypoints (validate, preflight, rulepack)
   core/        # services/models/validators (evolving)
   rulepack/    # loader + schema (YAML)
-  rulepacks/   # packaged rulepacks (CC0)
+  rulepacks/
+    examples/    # small kata/example rulepacks (CC0)
 demos/         # demo rulepacks / scratch data (not shipped)
 tests/         # unit + smoke tests
 decisions/     # Architecture Decision Records (ADRs)
@@ -188,18 +201,17 @@ See the [Documentation](#documentation) section above for detailed guides. For p
 
 FAIRy-core uses a mixed licensing model:
 
-- **Core engine code** (`src/fairy/**`, excluding `src/fairy/rulepacks/**`):
+- **Core engine code** (`src/fairy/**`):
   Licensed under **AGPL-3.0-only**. See [`LICENSE`](./LICENSE).
 
-- **Built-in rulepacks** (`src/fairy/rulepacks/**`):
-  Licensed under **CC0-1.0** (public domain dedication). See
-  [`src/fairy/rulepacks/LICENSE`](./src/fairy/rulepacks/LICENSE).
+- **Example/kata rulepacks** (`rulepacks/examples/**`):
+  Licensed under **CC0-1.0**. See [`rulepacks/examples/LICENSE`](./rulepacks/examples/LICENSE).
+
+- **Official public rulepacks** (separate repos, e.g. `fairy-rulepacks-geo`):
+  Licensed under **CC0-1.0** (each repo includes its own LICENSE).
 
 - **Samples and fixtures** (e.g. `samples/**`, `tests/fixtures/**`):
   Licensed under **CC BY-4.0** (documented per folder).
-
-- **Third-party components**:
-  See [`THIRD_PARTY_LICENSES.md`](./THIRD_PARTY_LICENSES.md).
 
 Commercial licensing for FAIRy-core is available for organizations that
 cannot adopt AGPL. See [`COMMERCIAL.md`](./COMMERCIAL.md) or contact

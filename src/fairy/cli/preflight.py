@@ -20,7 +20,8 @@ def preflight(
     rulepack: str = typer.Option(
         ...,
         "--rulepack",
-        help="Path to rulepack JSON (e.g. fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json)",
+        help="Path to rulepack JSON (e.g. "
+        "/path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json)",
     ),
     samples: str = typer.Option(..., "--samples", help="Path to samples.tsv"),
     files: str = typer.Option(..., "--files", help="Path to files.tsv / file manifest"),
@@ -35,7 +36,7 @@ containing the attestation block and all findings.
 
     Example:
         python -m fairy.cli.preflight preflight \
-            --rulepack fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json \
+            --rulepack /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json \
             --samples demos/bulk_demo/samples.tsv \
             --files demos/bulk_demo/files.tsv \
             --out out/report.json
@@ -54,7 +55,7 @@ containing the attestation block and all findings.
     )
 
     # ensure output dir exists
-    out_path.parents.mkdir(parents=True, exist_ok=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(out_path, "w") as f:
         json.dump(report, f, indent=2)
