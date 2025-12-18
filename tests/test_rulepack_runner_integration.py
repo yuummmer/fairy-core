@@ -16,7 +16,7 @@ def _run(rp_path_str, inputs_map):
 
 def test_penguins_rulepack_loads_and_runs():
     report = _run(
-        "demos/rulepacks/penguins.yml",
+        "rulepacks/examples/penguins/rulepack.yml",
         {"default": Path("tests/fixtures/penguins_small.csv")},
     )
     att = report["attestation"]["rulepack"]
