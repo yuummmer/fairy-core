@@ -4,10 +4,10 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](#)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](.pre-commit-config.yaml)
 
-## 📸 Quick look
+## Quick look
 
 **Preflight (CLI)**
-![FAIRy CLI preflight showing FAIL finding and submission_ready False](docs/assets/preflight_cli_before.png)
+![FAIRy validate example (penguins kata)](docs/assets/validate_cli_penguins.png)
 
 # ✨ FAIRy Core ✨
 
