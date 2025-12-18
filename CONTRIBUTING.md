@@ -27,18 +27,28 @@ There are many useful ways to help:
 If you’re new, look for issues labeled `good first issue` or `help wanted`
 in the issue tracker.
 
+### Contributing rulepacks (recommended starting point)
+
+Most community contributions will be rulepacks (rules + tiny fixtures), which live in separate **CC0** repositories.
+
+**Official rulepack repos:**
+- GEO: `fairy-rulepacks-geo` (CC0)
+
+**Where to contribute what:**
+- If you want to add or improve repository-specific checks (e.g., GEO / ENA): contribute in the relevant rulepack repo.
+- If you need a new rule type / engine capability to support a rulepack: contribute here in `fairy-core`.
+
+If you’re not sure where something belongs, open an issue and we’ll route it.
 ---
 
 ## Getting started
 
 1. **Find or open an issue**
-
    - Check the [issue tracker](../../issues) for something interesting.
    - New contributors: start with `good first issue` or `help wanted`.
    - For new ideas, open an issue to discuss before you start coding.
 
 2. **Fork and clone the repository**
-
    - Fork this repo on GitHub.
    - Clone your fork locally:
 
@@ -48,9 +58,10 @@ in the issue tracker.
      ```
 
 3. **Create a feature branch**
-
    ```bash
    git switch -c feat/short-description
+
+   ```
 
 4. **Set up your environment**
 
@@ -69,14 +80,13 @@ in the issue tracker.
    - Keep changes focused and small where possible
    - Update or add tests as needed.
    - Update documentation if behavior or APIs change
-6. **Run checks locally**
 
+6. **Run checks locally**
    - Run the test suite (e.g. pytest).
    - Run linters/formatters (e.g. pre-commit run --all-files).
 
 7. **Submit a Pull Request**
-
-   - Push your branc to your fork:
+   - Push your branch to your fork:
     ```bash
     git push -u origin feat/short-description
     ```
@@ -124,20 +134,10 @@ for details on how to get involved.
 
 By contributing to this repository, you agree that:
 
-- Contributions to the core engine code (e.g. files under src/fairy/**
-excluding src/fairy/rulepacks/**) are licensed under the project’s main
-license, AGPL-3.0-only.
-- Contributions to built-in rulepacks (e.g. files under
-src/fairy/rulepacks/**) are licensed under CC0-1.0, so they can be
-freely reused by the wider community.
-- Contributions to samples and test fixtures (e.g. under samples/**
-or tests/fixtures/**, if present) are licensed under CC BY-4.0.
+- Contributions to the core engine code (e.g. files under `src/fairy/**`) are licensed under the project’s main license, **AGPL-3.0-only**.
+- Contributions to example/kata rulepacks in this repo (e.g. `rulepacks/examples/**`) are licensed under **CC0-1.0**.
+- Contributions to samples and test fixtures (e.g. under `samples/**` or `tests/fixtures/**`) are licensed under **CC BY-4.0**.
 
-f you are contributing code or content copied or adapted from another project,
-please make sure its license is compatible with the relevant FAIRy license and
-include attribution where needed.
+If you are contributing code or content copied or adapted from another project, please make sure its license is compatible with the relevant FAIRy license and include attribution where needed.
 
-Note: We may introduce a Contributor License Agreement (CLA) later to make
-dual/commercial licensing simpler. If that happens, this document will be
-updated, and new contributions may be subject to CLA terms going forward.
----
+Note: We may introduce a Contributor License Agreement (CLA) later. If that happens, this document will be updated.
