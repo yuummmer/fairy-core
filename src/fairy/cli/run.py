@@ -71,8 +71,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "preflight",
         help="Run FAIRy rulepack on GEO-style TSVs and emit attestation + findings.",
         description=(
-            "Pre-submission check for GEO bulk RNA-seq. "
-            "Reads samples.tsv and files.tsv, applies the rulepack, "
+            "Pre-submission check for GEO-style submissions. "
+            "Reads samples.tsv and files.tsv, applies the selected rulepack, "
             "and emits a FAIRy report with submission_ready."
         ),
     )
@@ -80,8 +80,9 @@ def _build_parser() -> argparse.ArgumentParser:
         "--rulepack",
         type=Path,
         required=True,
-        help="Path to rulepack JSON (e.g. fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json)",
-    )
+        help="Path to rulepack JSON (e.g. "
+        "/path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json)",
+    ),
     pf.add_argument(
         "--samples",
         type=Path,
