@@ -14,17 +14,6 @@
 Local-first validator and packager for FAIR-compliant research datasets.
 This repo contains the **core validation engine** and **CLI** (e.g., `fairy preflight`, `fairy validate`).
 
-## 📦 Official rulepack repositories (CC0)
-
-Rulepacks are versioned and released independently from `fairy-core`.
-
-- **GEO rulepacks**: [fairy-rulepacks-geo](https://github.com/yuummmer/fairy-rulepacks-geo)
-  - `rulepacks/geo_bulk_seq/` (available now)
-  - `rulepacks/geo_single_cell/` (planned)
-
-This repo (`fairy-core`) keeps only small **example/kata** rulepacks under `rulepacks/examples/`.
-
-
 - ✅ Validates tabular metadata against repository-specific **rulepacks**
 - ✅ Emits **machine-readable** (JSON) and **human-readable** (Markdown) reports
 - ✅ Writes **attestation & provenance**, with optional export bundle (zip)
@@ -32,6 +21,29 @@ This repo (`fairy-core`) keeps only small **example/kata** rulepacks under `rule
 - 🚧 Early alpha; interfaces may change prior to v1.0
 
 > 💡 **Want the full UI experience?** For project workspaces, guided fixes, visual workflows, and demo examples, see [**fairy-lab**](https://github.com/yuummmer/fairy-lab) — a Streamlit-based demo tenant that uses this core engine.
+---
+## 📦 Rulepacks
+
+FAIRy-core is the **engine**. Rulepacks are **versioned and released independently** in separate CC0 repos.
+
+- **Rulepack registry (recommended start here):** `yuummmer/fairy-rulepack-registry`
+  Machine-readable index of available rulepacks + versions.
+- **GEO rulepacks:** `yuummmer/fairy-rulepacks-geo`
+  - `geo_bulk_seq` (available)
+  - `geo_single_cell` (planned)
+
+This repo (`fairy-core`) includes only small **example/kata** rulepacks under `rulepacks/examples/` for learning and tests.
+
+### 🗂️ Rulepack registry
+
+Official (and community) rulepacks are tracked in **fairy-rulepack-registry**.
+
+- 📌 Machine-readable list of rulepack repos + versions (so tools can discover them)
+- ✅ Schema-validated via CI (prevents broken entries)
+- 🧭 Use it to find the latest GEO/ENA/etc rulepacks without hunting across GitHub
+
+Registry repo: yuummmer/fairy-rulepack-registry
+GEO rulepacks: yuummmer/fairy-rulepacks-geo
 
 ---
 ## 🌱 What is FAIRy?
