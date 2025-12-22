@@ -19,9 +19,14 @@ def test_penguins_rulepack_loads_and_runs():
         "rulepacks/examples/penguins/rulepack.yml",
         {"default": Path("tests/fixtures/penguins_small.csv")},
     )
+
+    core_ver = report["attestation"].get("core_version")
+    assert isinstance(core_ver, str)
+    assert core_ver  # allows "unknown"
+
     att = report["attestation"]["rulepack"]
     assert att["id"] in ("penguins-kata", "penguins-kata")  # name field varies by schema
-    # v0.2.0 with required_core added should be 10 rules total
+
     total_rules = sum(len(r["rules"]) for r in report["resources"])
     assert total_rules == 10
 

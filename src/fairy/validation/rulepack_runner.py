@@ -1,6 +1,7 @@
 # src/fairy/validate/rulepack_runner.py
 from __future__ import annotations
 
+import importlib.metadata as md
 import re
 from fnmatch import fnmatch
 from hashlib import sha256
@@ -21,6 +22,7 @@ CHECK_TYPES = {
     "required",
     "url",
     "non_empty_trimmed",
+    "regex",
 }
 
 MAX_REMEDIATION_LINKS = 20
@@ -123,8 +125,14 @@ def run_rulepack(
         except Exception:
             att_inputs.append({"name": name, "path": str(p), "sha256": "", "bytes": 0, "rows": 0})
 
+    try:
+        core_version = md.version("fairy-core")
+    except md.PackageNotFoundError:
+        core_version = "unknown"
+
     report: dict[str, Any] = {
         "attestation": {
+            "core_version": core_version,
             "rulepack": {"id": rp_id, "version": rp_ver, "path": str(rp_path)},
             "inputs": att_inputs,
             "timestamp": now_iso,
@@ -160,7 +168,16 @@ def run_rulepack(
             rem_label = r.get("remediation_link_label")
 
             if rtype not in CHECK_TYPES:
-                status, evidence = "FAIL", {"error": "unknown_rule_type", "type": rtype}
+                status, evidence = "FAIL", {
+                    "error": "unknown_rule_type",
+                    "type": rtype,
+                    "message": (
+                        f"Unknown rule type 'r{type}'. "
+                        "This rulepack may require a newer version of fairy-core."
+                        "Please upgrade fairy-core and re-run."
+                    ),
+                    "supported_types": sorted(CHECK_TYPES),
+                }
             else:
                 try:
                     if rtype in ("dup", "no_duplicate_rows"):
@@ -206,13 +223,29 @@ def run_rulepack(
 
                     elif rtype == "url":
                         col = r.get("column")
-                        schemes = r.get("scheme", None)
+                        schemes = r.get("schemes") or r.get("scheme")
                         status, evidence = check_url(df, col, schemes, severity, rem_col, rem_label)
 
                     elif rtype == "non_empty_trimmed":
                         col = r.get("column")
                         status, evidence = check_non_empty_trimmed(
                             df, col, severity, rem_col, rem_label
+                        )
+                    elif rtype == "regex":
+                        col = r.get("column")
+                        regex_pattern = r.get("regex")
+                        mode = (r.get("mode") or "not_matches").strip()
+                        ignore_empty = bool(r.get("ignore_empty", True))
+
+                        status, evidence = check_regex(
+                            df,
+                            column=col,
+                            regex=regex_pattern,
+                            mode=mode,
+                            ignore_empty=ignore_empty,
+                            severity=severity,
+                            rem_col=rem_col,
+                            rem_label=rem_label,
                         )
 
                 except Exception as e:
@@ -643,6 +676,104 @@ def check_non_empty_trimmed(
     return "PASS", {"count": 0}
 
 
+def check_regex(
+    df: pd.DataFrame,
+    column: str,
+    regex: str,
+    mode: str = "not_matches",
+    ignore_empty: bool = True,
+    severity: str = "fail",
+    rem_col=None,
+    rem_label=None,
+) -> tuple[str, dict[str, Any]]:
+    """
+    mode:
+    - "not_matches": flag non-empty values that do NOT fullmatch (regex)
+    - "matches": flag non-empty values that DO search (regex) (forbidden pattern)
+    ignore_empty:
+    - True: skip NA/empty/whitespace-only values
+    - False: evaluate empties too (so "" will fail "not_matches", and will not fail "matches)
+    """
+    if not column:
+        return "FAIL", {"error": "config_missing_column"}
+    if column not in df.columns:
+        return "FAIL", {"error": "column_not_found", "column": column}
+    if not regex:
+        return "FAIL", {"error": "config_missing_regex"}
+
+    mode = (mode or "not_matches").strip()
+    if mode not in ("not_matches", "matches"):
+        return "FAIL", {"error": "config_invalid_mode", "mode": mode}
+
+    rx = None
+    try:
+        rx = re.compile(regex)
+    except (re.error, TypeError) as e:
+        return "FAIL", {"error": "invalid_regex", "message": str(e), "regex": regex}
+
+    s = df[column]
+    bad_pos: list[int] = []
+    ignored_empty_count = 0
+    samples: list[dict[str, Any]] = []
+
+    for i, v in enumerate(s.tolist()):
+        if pd.isna(v):
+            if ignore_empty:
+                ignored_empty_count += 1
+                continue
+            text = ""
+        else:
+            text = str(v)
+
+        if text.strip() == "":
+            if ignore_empty:
+                ignored_empty_count += 1
+                continue
+
+        violated = False
+        if mode == "not_matches":
+            # "must match format" => full string match
+            violated = rx.fullmatch(text) is None
+        else:  # mode == "matches"
+            # "forbidden text present" => search anywhere
+            violated = rx.search(text) is not None
+
+        if violated:
+            bad_pos.append(i)
+            if len(samples) < 10:
+                samples.append({"row": int(i) + 1, "value": text})
+
+    if bad_pos:
+        rows = _rows_sorted_1based(bad_pos)
+        ev: dict[str, Any] = {
+            "column": column,
+            "regex": regex,
+            "mode": mode,
+            "ignore_empty": bool(ignore_empty),
+            "count": len(rows),
+            "rows": rows,
+        }
+
+        if ignored_empty_count:
+            ev["ignored_empty_count"] = int(ignored_empty_count)
+        if samples:
+            ev["samples"] = samples
+
+        rem = _collect_remediation_links(df, rows, rem_col, rem_label)
+        if rem:
+            ev["remediation"] = rem
+
+        return _status_from_severity(severity), ev
+    # PASS: still return useful meta for debugging
+    return "PASS", {
+        "column": column,
+        "regex": regex,
+        "mode": mode,
+        "ignore_empty": bool(ignore_empty),
+        "count": 0,
+    }
+
+
 # ---------------- Markdown writer (deterministic order) ----------------
 
 
@@ -709,5 +840,12 @@ def write_markdown(report: dict[str, Any]) -> str:
                 out.append("Normalized comparison applied.")
             if "error" in ev:
                 out.append(f"Error: {ev['error']}")
+            if ev.get("regex") and ev.get("rows"):
+                out.append(
+                    f"Regex {ev.get('mode')} rows {ev.get('rows', [])} (count={ev.get('count', 0)})"
+                )
+                if ev.get("samples"):
+                    for s in ev["samples"][:5]:
+                        out.append(f"- Row {s.get('row')}: {s.get('value')}")
         out.append("")
     return "\n".join(out)

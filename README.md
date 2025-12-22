@@ -161,7 +161,7 @@ params: {}   # optional
 
 ```
 
-**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`
+**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`, `regex`
 
 See [Rule types reference](./docs/rule-types.md) for complete documentation on all rule types and their configuration options.
 

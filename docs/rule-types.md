@@ -14,6 +14,7 @@ FAIRy supports the following rule types:
 6. [`foreign_key`](#foreign_key) - Ensures referential integrity across tables
 7. [`url`](#url) - Validates URL format and allowed schemes
 8. [`non_empty_trimmed`](#non_empty_trimmed) - Ensures a column is non-empty after trimming whitespace
+9. ['regex`](#regex) - Validates string formats or flags forbidden patterns using regular expressions
 
 ---
 
@@ -326,6 +327,63 @@ Ensures that a column contains non-empty values after trimming whitespace. This 
 
 - Value is null/NaN
 - Value is empty string after trimming whitespace
+---
+
+## `regex`
+
+Validates string formats or detects forbidden patterns using a regular expression.
+
+This rule is useful for IDs (accessions, specimen IDs, sample IDs), code-like fields with fixed syntax, and for flagging control characters or disallowed tokens.
+
+### Configuration
+
+- `pattern` (string): File pattern to match
+- `column` (string): Column name to validate
+- `regex` (string): Regular expression pattern (Python `re` syntax)
+- `mode` (string, optional): How to interpret the regex (default: `not_matches`)
+  - `not_matches`: flag non-empty values that do **not** match the regex (format enforcement)
+  - `matches`: flag non-empty values that **do** match the regex (forbidden pattern detection)
+- `ignore_empty` (boolean, optional): Whether to ignore empty/whitespace-only/NA values (default: `true`)
+  - If `true`, empty values are skipped by this rule. Pair with `required` or `non_empty_trimmed` if empties should be flagged.
+
+### Examples
+
+#### Enforce an ID format (`mode: not_matches`)
+
+```yaml
+- id: sample_id_format
+  type: regex
+  severity: fail
+  config:
+    pattern: "data*.csv"
+    column: sample_id
+    regex: "^[A-Z]{3}-[0-9]{5}-[0-9]{3}$"
+    mode: not_matches
+    ignore_empty: true
+```
+
+#### Flag forbidden control characters (`mode: matches`)
+```yaml
+- id: product_name_no_control_chars
+  type: regex
+  severity: warn
+  config:
+    pattern: "annotations*.csv"
+    column: product_name
+    regex: "[\\t\\r\\n\\x00-\\x1F\\x7F]"
+    mode: matches
+    ignore_empty: true
+
+```
+### What it checks
+
+- For `mode: not_matches`: values must match the **entire** string pattern (full match)
+- For `mode: matches`: values are flagged if the regex is found **anywhere** in the string
+
+#### Failure conditions
+- Column is missing from the table
+- Regex is missing or invalid
+- Value violates the rule according to `mode` (empty values are ignored when `ignore_empty: true`)
 
 ---
 
