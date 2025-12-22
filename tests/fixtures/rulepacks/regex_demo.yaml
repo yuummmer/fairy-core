@@ -1,0 +1,25 @@
+meta:
+  name: test_regex
+  version: 0.1.0
+  description: Regex rule type smoke tests
+
+rules:
+  - id: sample_id_format
+    type: regex
+    severity: fail
+    config:
+      pattern: "regex_demo.csv"
+      column: sample_id
+      regex: "^[A-Z]{3}-[0-9]{5}-[0-9]{3}$"
+      mode: not_matches
+      ignore_empty: true
+
+  - id: product_name_no_control_chars
+    type: regex
+    severity: warn
+    config:
+      pattern: "regex_demo.csv"
+      column: product_name
+      regex: "[\\t\\r\\n\\x00-\\x1F\\x7F]"
+      mode: matches
+      ignore_empty: true
