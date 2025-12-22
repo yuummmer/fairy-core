@@ -172,8 +172,8 @@ def run_rulepack(
                     "error": "unknown_rule_type",
                     "type": rtype,
                     "message": (
-                        f"Unknown rule type 'r{type}'. "
-                        "This rulepack may require a newer version of fairy-core."
+                        f"Unknown rule type '{rtype}'. "
+                        "This rulepack may require a newer version of fairy-core. "
                         "Please upgrade fairy-core and re-run."
                     ),
                     "supported_types": sorted(CHECK_TYPES),
