@@ -1,6 +1,7 @@
 # src/fairy/validate/rulepack_runner.py
 from __future__ import annotations
 
+import importlib.metadata as md
 import re
 from fnmatch import fnmatch
 from hashlib import sha256
@@ -124,8 +125,14 @@ def run_rulepack(
         except Exception:
             att_inputs.append({"name": name, "path": str(p), "sha256": "", "bytes": 0, "rows": 0})
 
+    try:
+        core_version = md.version("fairy-core")
+    except md.PackageNotFoundError:
+        core_version = "unknown"
+
     report: dict[str, Any] = {
         "attestation": {
+            "core_version": core_version,
             "rulepack": {"id": rp_id, "version": rp_ver, "path": str(rp_path)},
             "inputs": att_inputs,
             "timestamp": now_iso,
@@ -161,7 +168,16 @@ def run_rulepack(
             rem_label = r.get("remediation_link_label")
 
             if rtype not in CHECK_TYPES:
-                status, evidence = "FAIL", {"error": "unknown_rule_type", "type": rtype}
+                status, evidence = "FAIL", {
+                    "error": "unknown_rule_type",
+                    "type": rtype,
+                    "message": (
+                        f"Unknown rule type 'r{type}'. "
+                        "This rulepack may require a newer version of fairy-core."
+                        "Please upgrade fairy-core and re-run."
+                    ),
+                    "supported_types": sorted(CHECK_TYPES),
+                }
             else:
                 try:
                     if rtype in ("dup", "no_duplicate_rows"):
@@ -207,7 +223,7 @@ def run_rulepack(
 
                     elif rtype == "url":
                         col = r.get("column")
-                        schemes = r.get("scheme", None)
+                        schemes = r.get("schemes") or r.get("scheme")
                         status, evidence = check_url(df, col, schemes, severity, rem_col, rem_label)
 
                     elif rtype == "non_empty_trimmed":
