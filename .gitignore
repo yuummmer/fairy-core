@@ -55,3 +55,6 @@ PR_SUBMISSION_GUIDE.md
 
 # runtime outputs
 out/
+
+# Personal PR scratch
+/docs/prs/
