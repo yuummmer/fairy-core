@@ -30,6 +30,7 @@ MAX_REMEDIATION_LINKS = 20
 # URI scheme-ish validation for url checks
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
 
+
 def _extract_meta(rulepack: dict) -> tuple[str, str]:
     # New schema (id/version at top-level)
     if isinstance(rulepack, dict) and ("id" in rulepack or "version" in rulepack):
@@ -82,11 +83,13 @@ def _resource_matches(pattern: str, path: Path) -> bool:
         return False
     return fnmatch(path.name, pattern)
 
+
 def _infer_sep(path: Path) -> str:
     suf = path.suffix.lower()
     if suf in {".tsv", ".tab"}:
         return "\t"
     return ","
+
 
 def _read_table(path: Path, delimiter: str | None = None) -> pd.DataFrame:
     sep = delimiter if delimiter is not None else _infer_sep(path)
@@ -94,8 +97,9 @@ def _read_table(path: Path, delimiter: str | None = None) -> pd.DataFrame:
         path,
         sep=sep,
         dtype=str,
-        keep_default_na=False, # keep empty strings as ""
+        keep_default_na=False,  # keep empty strings as ""
     )
+
 
 def run_rulepack(
     inputs_map: dict[str, Path], rulepack: dict, rp_path: Path, now_iso: str
@@ -117,7 +121,7 @@ def run_rulepack(
     # ---- Load all inputs once (enables cross-table checks)
     frames: dict[str, pd.DataFrame] = {}
     for name, path in inputs_map.items():
-        frames[name] = _read_table(path) # delimiter override later via CLI threading
+        frames[name] = _read_table(path)  # delimiter override later via CLI threading
 
     # ---- Attestation + metadata echo (non-breaking)
     att_inputs = []
