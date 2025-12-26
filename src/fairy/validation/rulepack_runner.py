@@ -27,6 +27,8 @@ CHECK_TYPES = {
 
 MAX_REMEDIATION_LINKS = 20
 
+# URI scheme-ish validation for url checks
+_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
 
 def _extract_meta(rulepack: dict) -> tuple[str, str]:
     # New schema (id/version at top-level)
@@ -78,14 +80,22 @@ def _sha256(path: Path) -> str:
 def _resource_matches(pattern: str, path: Path) -> bool:
     if not pattern:
         return False
-    name = path.name
-    if "*" in pattern:
-        # Match only against the filename for MVP
-        from fnmatch import fnmatch
+    return fnmatch(path.name, pattern)
 
-        return fnmatch(name, pattern)
-    return name == pattern
+def _infer_sep(path: Path) -> str:
+    suf = path.suffix.lower()
+    if suf in {".tsv", ".tab"}:
+        return "\t"
+    return ","
 
+def _read_table(path: Path, delimiter: str | None = None) -> pd.DataFrame:
+    sep = delimiter if delimiter is not None else _infer_sep(path)
+    return pd.read_csv(
+        path,
+        sep=sep,
+        dtype=str,
+        keep_default_na=False, # keep empty strings as ""
+    )
 
 def run_rulepack(
     inputs_map: dict[str, Path], rulepack: dict, rp_path: Path, now_iso: str
@@ -107,7 +117,7 @@ def run_rulepack(
     # ---- Load all inputs once (enables cross-table checks)
     frames: dict[str, pd.DataFrame] = {}
     for name, path in inputs_map.items():
-        frames[name] = pd.read_csv(path)
+        frames[name] = _read_table(path) # delimiter override later via CLI threading
 
     # ---- Attestation + metadata echo (non-breaking)
     att_inputs = []
@@ -582,9 +592,6 @@ def check_required(
     if ev:
         return _status_from_severity(severity), ev
     return "PASS", {"count": 0}
-
-
-_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
 
 
 def _url_syntax_ok(val: Any, schemes: set[str]) -> bool:
