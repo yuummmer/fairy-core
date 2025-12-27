@@ -24,3 +24,6 @@ class Rulepack(BaseModel):
     meta: Meta
     rules: list[Rule] = Field(min_length=1)
     params: dict[str, Any] = Field(default_factory=dict)
+
+    # populated by loader (not required in YAML)
+    path: str | None = None

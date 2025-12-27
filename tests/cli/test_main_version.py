@@ -17,4 +17,7 @@ def test_main_top_level_version(monkeypatch, capsys):
     rc = main([])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "fairy " in out
+    assert "fairy_core_version:" in out
+    assert "rulepack_name:" in out
+    assert "rulepack_version:" in out
+    assert "rulepack_source_path:" in out

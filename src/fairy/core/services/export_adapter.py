@@ -76,20 +76,9 @@ def run_preflight_and_write(
         resolved_codes=[],  # resolved diff is optional for export demo
         prior_codes=set(),  # pass empty set so emitter renders the block
     )
-    # Return metadata dict for backward compatibility (extract from new structure)
-    metadata = report.get("metadata", {})
-    rulepack_meta = metadata.get("rulepack", {})
-    summary = report.get("summary", {})
-    by_level = summary.get("by_level", {})
-    att_dict = {
-        "rulepack_id": rulepack_meta.get("id", "UNKNOWN_RULEPACK"),
-        "rulepack_version": rulepack_meta.get("version", "0.0.0"),
-        "fairy_version": fairy_version,
-        "submission_ready": by_level.get("fail", 0) == 0,
-        "fail_count": by_level.get("fail", 0),
-        "warn_count": by_level.get("warn", 0),
-    }
-    return json_path, md_path, att_dict
+    # Return attestation dict (canonical, already includes provenance/header fields)
+    att = report.get("attestation") or report.get("_legacy", {}).get("attestation") or {}
+    return json_path, md_path, att
 
 
 def _shim_build_bundle(
@@ -98,6 +87,7 @@ def _shim_build_bundle(
     samples: Path,
     files: Path,
     report_json: Path,
+    attestation: dict,
 ) -> tuple[Path, Path, Path]:
     """
     Temporary shim until fairy_core.export.build_bundle is available.
@@ -129,23 +119,45 @@ def _shim_build_bundle(
     # Write provenance.json
     prov = {
         "created_at_utc": _now_utc_iso(),
-        "fairy_version": FAIRY_VERSION,
-        "inputs": {
-            "samples": (
-                (export_dir / "samples.tsv").as_posix()
-                if (export_dir / "samples.tsv").exists()
-                else None
-            ),
-            "files": (
-                (export_dir / "files.tsv").as_posix()
-                if (export_dir / "files.tsv").exists()
-                else None
-            ),
-            "report_json": report_json.as_posix(),
-        },
-        "environment": {
-            "platform": os.name,
-        },
+        # old key for compatibility
+        "fairy_version": (
+            attestation.get("fairy_core_version")
+            or attestation.get("fairy_version")
+            or FAIRY_VERSION
+        ),
+        # NEW canonical fields
+        "fairy_core_version": (
+            attestation.get("fairy_core_version")
+            or attestation.get("core_version")
+            or FAIRY_VERSION
+        ),
+        "rulepack_name": (
+            attestation.get("rulepack_name") or (attestation.get("rulepack") or {}).get("id")
+        ),
+        "rulepack_version": (
+            attestation.get("rulepack_version")
+            or (attestation.get("rulepack") or {}).get("version")
+        ),
+        "rulepack_source_path": (
+            attestation.get("rulepack_source_path")
+            or (attestation.get("rulepack") or {}).get("path")
+        ),
+        "inputs": [
+            {
+                "name": "samples",
+                "path": samples.name,
+                "sha256": _sha256_of_file(samples),
+                "bytes": samples.stat().st_size,
+            },
+            {
+                "name": "files",
+                "path": files.name,
+                "sha256": _sha256_of_file(files),
+                "bytes": files.stat().st_size,
+            },
+        ],
+        "environment": {"cwd": os.getcwd()},
+        "report_json": report_json.name,
     }
     provenance_path = export_dir / "provenance.json"
     _write_json(provenance_path, prov)
@@ -203,6 +215,7 @@ def export_submission(
         samples=dst_samples,
         files=dst_files,
         report_json=report_path,
+        attestation=att,
     )
 
     return ExportResult(

@@ -56,7 +56,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--version",
         action="store_true",
-        help="Print engine + rulepack version and exit.",
+        help="Print engine + resolved rulepack provenance and exit.",
     )
 
     sub = p.add_subparsers(dest="command", metavar="<command>")
@@ -82,7 +82,7 @@ def _build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Path to rulepack JSON (e.g. "
         "/path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json)",
-    ),
+    )
     pf.add_argument(
         "--samples",
         type=Path,
@@ -113,10 +113,15 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def _version_text(rulepack: Path | None) -> str:
-    # Customize if/when you add metadata to rulepacks
-    rp = "default" if not rulepack else rulepack.name
-    return f"fairy {FAIRY_VERSION}\nrulepack: {rp}"
+def _version_text() -> str:
+    return "\n".join(
+        [
+            f"fairy_core_version: {FAIRY_VERSION}",
+            "rulepack_name: default",
+            "rulepack_version: 0.0.0",
+            "rulepack_source_path: (built-in)",
+        ]
+    )
 
 
 def _build_payload(csv_path: Path, kind: str) -> tuple[dict, bytes]:
@@ -215,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # top-level --version (no subcommand)
     if args.version and (args.command is None):
-        print(_version_text(None))
+        print(_version_text())
         return 0
 
     # 'preflight' subcommand (NEW: GEO-style submission check)
@@ -290,8 +295,8 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         print(f"Rulepack:         {rulepack_id}@{rulepack_version}")
-        print(f"FAIRy version:    {fairy_version}")
-        print(f"Generated at:     {report['generated_at']}")
+        print(f"Rulepack path:    {args.rulepack.resolve()}")
+        print(f"fairy_core_version: {fairy_version}")
 
         # Extract fail/warn codes from results
         fail_codes = sorted({r["rule"] for r in results if r["level"] == "fail"})
