@@ -144,12 +144,19 @@ def run_rulepack(
     except md.PackageNotFoundError:
         core_version = "unknown"
 
+    rulepack_obj = {"id": rp_id, "version": rp_ver, "path": str(rp_path)}
+
     report: dict[str, Any] = {
+        "engine": {"fairy_core_version": core_version},
         "attestation": {
             "core_version": core_version,
-            "rulepack": {"id": rp_id, "version": rp_ver, "path": str(rp_path)},
+            "rulepack": rulepack_obj,
             "inputs": att_inputs,
             "timestamp": now_iso,
+            "fairy_core_version": core_version,
+            "rulepack_name": rp_id or "UNKNOWN_RULEPACK",
+            "rulepack_version": rp_ver or "0.0.0",
+            "rulepack_source_path": str(rp_path),
         },
         # New but non-breaking echo of provided inputs
         "metadata": {"inputs": {k: str(v) for k, v in inputs_map.items()}},
@@ -789,15 +796,29 @@ def check_regex(
 
 
 def write_markdown(report: dict[str, Any]) -> str:
+    eng = report.get("engine", {}) or {}
     att = report.get("attestation", {})
     rp = att.get("rulepack", {})
     ts = att.get("timestamp", "")
+
+    fairy_core_version = (
+        eng.get("fairy_core_version")
+        or att.get("fairy_core_version")
+        or att.get("core_version")
+        or ""
+    )
+    rulepack_name = att.get("rulepack_name") or rp.get("id", "")
+    rulepack_version = att.get("rulepack_version") or rp.get("version", "")
+    rulepack_source_path = att.get("rulepack_source_path") or rp.get("path", "")
+
     out: list[str] = []
     out += [
         "# FAIRy Validate Report",
         "",
         f"**Timestamp:** {ts}",
-        f"**Rulepack:** {rp.get('id', '')}@{rp.get('version', '')} ({rp.get('path', '')})",
+        f"**FAIRy core:** {fairy_core_version}",
+        f"**Rulepack:** {rulepack_name}@{rulepack_version}",
+        f"**Rulepack source:** {rulepack_source_path}",
         "",
         "## Summary",
         f"- PASS: {report.get('summary', {}).get('pass', 0)}",
