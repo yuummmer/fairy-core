@@ -68,6 +68,13 @@ def resolve_input_path(p: Path) -> Path:
     raise FileNotFoundError(f"{p} is not a file or directory")
 
 
-def version_text(rulepack: Path | None) -> str:
-    rp = "default" if not rulepack else rulepack.name
-    return f"fairy {FAIRY_VERSION}\nrulepack: {rp}"
+def version_text(rulepack) -> str:
+    # Top-level `fairy --version` has no resolved rulepack, so treat as default/built-in.
+    return "\n".join(
+        [
+            f"fairy_core_version: {FAIRY_VERSION}",
+            "rulepack_name: default",
+            "rulepack_version: 0.0.0",
+            "rulepack_source_path: (built-in)",
+        ]
+    )

@@ -25,6 +25,8 @@ from typing import Any
 
 import pandas as pd
 
+from fairy import __version__ as FAIRY_CORE_VERSION
+
 # pull shared types/utilities
 from ..models.preflight_report_v1 import (
     InputMetadata,
@@ -84,7 +86,7 @@ def run_rulepack(
     ctx: dict[str, Any] = {"params": params or {}}
 
     # 1. load rulepack JSON
-    pack = json.loads(Path(rulepack_path).read_text())
+    pack = rulepack_path
 
     # 2. load dataframes
     samples_df = pd.read_csv(samples_path, sep="\t", dtype=str).fillna("")
@@ -254,6 +256,20 @@ def run_rulepack(
         params_sha256=params_sha256,
     )
 
+    # New canonical provenance fields
+    rulepack_name = pack.get("rulepack_id") or "UNKNOWN_RULEPACK"
+    rulepack_ver = pack.get("rulepack_version") or "0.0.0"
+    rulepack_source_path = rulepack_metadata.path
+
+    attestation.update(
+        {
+            "fairy_core_version": FAIRY_CORE_VERSION,
+            "rulepack_name": rulepack_name,
+            "rulepack_version": rulepack_ver,
+            "rulepack_source_path": str(rulepack_source_path),
+        }
+    )
+
     # Convert InputMetadata dataclasses to dicts for JSON serialization
     inputs_metadata_dict: dict[str, dict[str, Any]] = {}
     for name, input_meta in sorted(inputs_metadata.items()):  # Sort keys alphabetically
@@ -304,8 +320,12 @@ def run_rulepack(
         },
         "results": results,
         # Optional fields for future extensibility
-        "engine": None,  # Can be populated later
-        "attestation": None,  # Can be populated later
+        "engine": {"fairy_core_version": FAIRY_CORE_VERSION},
+        "attestation": {
+            "rulepack_name": rulepack_name,
+            "rulepack_version": rulepack_ver,
+            "rulepack_source_path": str(rulepack_path),
+        },
         # Keep old structure temporarily for backward compatibility during migration
         "_legacy": {
             "attestation": attestation,
