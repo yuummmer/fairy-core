@@ -38,7 +38,10 @@ def load_rulepack(path: str | Path) -> Rulepack:
     if not isinstance(data, dict):
         raise RulepackError(f"Expected a YAML mapping at top-level in '{p}'.")
     try:
-        return Rulepack.model_validate(data)
+        rp = Rulepack.model_validate(data)
     except ValidationError as e:
-        bullets = "; ".join(f"{err['loc']}: {err['msg']}" for err in e.errors())
+        bullets = ";".join(f"{err['loc']}: {err['msg']}" for err in e.errors())
         raise RulepackError(f"Rulepack schema validation failed for '{p}': {bullets}") from e
+
+    # Attach the source path (not part of the YAML; added by the loader)
+    return rp.model_copy(update={"path": str(p.resolve())})
