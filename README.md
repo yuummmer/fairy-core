@@ -95,20 +95,22 @@ Official (and community) rulepacks are tracked in **fairy-rulepack-registry**. T
 ### Example: GEO bulk RNA-seq (external rulepack repo)
 
 ```bash
-mkdir -p .deps .tmp
-
 # Get the GEO rulepack repo (CC0)
-git clone https://github.com/yuummmer/fairy-rulepacks-geo.git .deps/fairy-rulepacks-geo
+git clone https://github.com/yuummmer/fairy-rulepacks-geo.git
 
 # Run preflight using its fixtures
+mkdir -p .tmp
+
 fairy preflight \
-  --rulepack .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json \
+  --rulepack .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_2_0.json \
   --samples  .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/samples.tsv \
   --files    .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/files.tsv \
   --out      .tmp/geo_bulk_seq_report.json
 
-# View the machine-readable output:
-cat .tmp/geo_bulk_seq_report.json | head
+# View outputs:
+ls .tmp/
+cat .tmp/geo_bulk_seq_report.md | head -n 80  # or open in your editor
+
 ```
 **Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`, `regex`
 
