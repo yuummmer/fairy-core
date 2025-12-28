@@ -26,6 +26,7 @@ from typing import Any
 import pandas as pd
 
 from fairy import __version__ as FAIRY_CORE_VERSION
+from fairy.rulepack.loader import load_rulepack
 
 # pull shared types/utilities
 from ..models.preflight_report_v1 import (
@@ -75,18 +76,28 @@ def _where_from_issue(issue: WarningItem, fallback_where: str) -> str:
 
 
 def run_rulepack(
-    rulepack_path: Path,
+    rulepack_path: str | Path,
     samples_path: Path,
     files_path: Path,
-    fairy_version: str = "0.2.0",
-    params: dict[str, Any] | None = None,
+    fairy_version: str,
+    params: dict,
 ) -> dict:
 
     # ---NEW: context injected for rule functions
     ctx: dict[str, Any] = {"params": params or {}}
 
-    # 1. load rulepack JSON
-    pack = rulepack_path
+    # 1. load rulepack (YAML/JSON) -> Pydantic model
+    rp = load_rulepack(rulepack_path)
+    # convert to plain dict for existing logic (pack["rules"], pack.get)
+    pack = rp.model_dump()
+
+    # Build metadata.rulepack with provenance
+    rulepack_sha256 = sha256_file(rulepack_path)
+    meta = pack.get("meta") or {}
+
+    rulepack_name = meta.get("name") or pack.get("rulepack_name") or "UNKNOWN_RULEPACK"
+    rulepack_id = meta.get("id") or pack.get("rulepack_id") or rulepack_name
+    rulepack_version = meta.get("version") or pack.get("rulepack_version") or "0.0.0"
 
     # 2. load dataframes
     samples_df = pd.read_csv(samples_path, sep="\t", dtype=str).fillna("")
@@ -225,19 +236,15 @@ def run_rulepack(
 
     # Build attestation (without inputs - metadata.inputs is canonical)
     attestation = {
-        "rulepack_id": pack.get("rulepack_id", "UNKNOWN_RULEPACK"),
-        "rulepack_version": pack.get("rulepack_version", "0.0.0"),
+        "rulepack_id": rulepack_id,
+        "rulepack_version": rulepack_version,
+        "rulepack_name": rulepack_name,
         "fairy_version": fairy_version,
         "run_at_utc": now_utc_iso(),
         "submission_ready": (fail_count == 0),
         "fail_count": fail_count,
         "warn_count": warn_count,
     }
-
-    # Build metadata.rulepack with provenance
-    rulepack_sha256 = sha256_file(rulepack_path)
-    rulepack_id = pack.get("rulepack_id")
-    rulepack_version = pack.get("rulepack_version")
 
     # Compute params_sha256 if params provided
     params_sha256: str | None = None
@@ -257,8 +264,9 @@ def run_rulepack(
     )
 
     # New canonical provenance fields
-    rulepack_name = pack.get("rulepack_id") or "UNKNOWN_RULEPACK"
-    rulepack_ver = pack.get("rulepack_version") or "0.0.0"
+    rulepack_id = meta.get("id") or pack.get("rulepack_id", "UNKNOWN_RULEPACK")
+    rulepack_ver = meta.get("version") or pack.get("rulepack_version", "0.0.0")
+    rulepack_name = meta.get("name") or pack.get("rulepack", rulepack_id)
     rulepack_source_path = rulepack_metadata.path
 
     attestation.update(

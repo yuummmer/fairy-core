@@ -62,9 +62,9 @@ def main(args) -> int:
         return 2
 
     report = run_rulepack(
-        rulepack_path=args.rulepack.resolve(),
-        samples_path=args.samples.resolve(),
-        files_path=args.files.resolve(),
+        rulepack_path=args.rulepack,
+        samples_path=args.samples,
+        files_path=args.files,
         fairy_version=args.fairy_version,
         params=params,
     )
@@ -73,7 +73,6 @@ def main(args) -> int:
     args.out.write_text(
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
     )
-
     # Extract data from new v1 structure
     metadata = report["metadata"]
     summary = report["summary"]
@@ -99,8 +98,8 @@ def main(args) -> int:
 
     # Extract rulepack info from metadata.rulepack
     rulepack_meta = metadata.get("rulepack", {})
-    rulepack_id = rulepack_meta.get("id", "UNKNOWN_RULEPACK")
-    rulepack_version = rulepack_meta.get("version", "0.0.0")
+    rulepack_id = rulepack_meta.get("id") or rulepack_meta.get("name") or "UNKNOWN_RULEPACK"
+    rulepack_version = rulepack_meta.get("version") or "0.0.0"
 
     # FAIRy version from legacy attestation if available, otherwise use default
     fairy_version = (
