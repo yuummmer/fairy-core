@@ -61,8 +61,8 @@ def emit_preflight_markdown(
 
     # Extract rulepack info from metadata.rulepack
     rulepack_meta = metadata.get("rulepack", {})
-    rulepack_id = rulepack_meta.get("id", "UNKNOWN_RULEPACK")
-    rulepack_version = rulepack_meta.get("version", "0.0.0")
+    rulepack_id = rulepack_meta.get("id") or rulepack_meta.get("name") or "UNKNOWN_RULEPACK"
+    rulepack_version = rulepack_meta.get("version") or "0.0.0"
 
     # Get FAIRy version from legacy attestation if available
     fairy_version = legacy_att.get("fairy_version", "unknown") if legacy_att else "unknown"

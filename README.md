@@ -4,14 +4,15 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](#)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](.pre-commit-config.yaml)
 
-## Quick look
-
-**Preflight (CLI)**
-![FAIRy validate example (penguins kata)](docs/assets/validate_cli_penguins.png)
-
-# ✨ FAIRy Core ✨
-
+# FAIRy Core
 Local-first validator and packager for FAIR-compliant research datasets.
+
+**Why FAIRy**
+- **Local-first**: All processing is on your machine. Your raw and fixed data never leave without your consent.
+- **Extensible**: Add new repository templates or contribute improved schemas/rules — keep up with evolving standards.
+- **Practical**: Catch real submission pain points (dates, IDs, vocab, file names), export clean packages, avoid resubmission headaches.
+
+**What’s in this repo**
 This repo contains the **core validation engine** and **CLI** (e.g., `fairy preflight`, `fairy validate`).
 
 - ✅ Validates tabular metadata against repository-specific **rulepacks**
@@ -21,6 +22,55 @@ This repo contains the **core validation engine** and **CLI** (e.g., `fairy pref
 - 🚧 Early alpha; interfaces may change prior to v1.0
 
 > 💡 **Want the full UI experience?** For project workspaces, guided fixes, visual workflows, and demo examples, see [**fairy-lab**](https://github.com/yuummmer/fairy-lab) — a Streamlit-based demo tenant that uses this core engine.
+---
+## Quick look
+
+**Validate (CLI)**
+![FAIRy validate example (penguins kata)](docs/assets/validate_cli_penguins.png)
+---
+## Try it in 60 seconds
+This produces a Markdown file for the penguins kata like the screenshot above.
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+mkdir -p .tmp
+
+fairy validate \
+  --rulepack rulepacks/examples/penguins/rulepack.yml \
+  --inputs default=tests/fixtures/penguins_small.csv \
+  --report-json .tmp/penguins_report.json \
+  --report-md .tmp/penguins_report.md
+
+less .tmp/penguins_report.md   # press q to quit
+
+# (Optional) Open in VS Code if you have it:
+code .tmp/penguins_report.md
+```
+---
+## Choose your path
+
+- **UI (fairy-lab)**: local project workspaces, guided fixes, visual workflow, export bundles.
+  → https://github.com/yuummmer/fairy-lab
+
+- **CLI (this repo)**: run `fairy preflight` / `fairy validate` against a rulepack, review JSON/Markdown reports, iterate until submission-ready.
+
+---
+## Quickstart
+
+```bash
+# 0) Python 3.10+
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+
+# 1) Check CLI
+fairy --help
+fairy --version
+
+# 2) (Optional) Rulepack schema validation (example penguins rulepack)
+python -m fairy.cli rulepack --rulepack rulepacks/examples/penguins/rulepack.yml
+
+```
 ---
 ## 📦 Rulepacks
 
@@ -36,97 +86,44 @@ This repo (`fairy-core`) includes only small **example/kata** rulepacks under `r
 
 ### 🗂️ Rulepack registry
 
-Official (and community) rulepacks are tracked in **fairy-rulepack-registry**.
+Official (and community) rulepacks are tracked in **fairy-rulepack-registry**. Tools (and FAIRy Lab) can use this to discover rulepacks.
 
 - 📌 Machine-readable list of rulepack repos + versions (so tools can discover them)
 - ✅ Schema-validated via CI (prevents broken entries)
 - 🧭 Use it to find the latest GEO/ENA/etc rulepacks without hunting across GitHub
 
-Registry repo: yuummmer/fairy-rulepack-registry
-GEO rulepacks: yuummmer/fairy-rulepacks-geo
-
----
-## 🌱 What is FAIRy?
-
-- **Local-first**: All processing is on your machine. Your raw and fixed data never leave without your consent.
-- **Flexible & Open**: Core validation engine, repository rule templates, and CLI are 100% open and community-driven.
-- **Extensible**: Easily add new repository templates or contribute improved schemas/rules — keep up with the latest standards.
-- **Practical**: Audit and fix real researcher pain points (dates, IDs, vocab, file names), export clean packages, avoid resubmission headaches.
-
----
-
-## ⚙️ How Does It Work?
-
-### Using the UI (fairy-lab)
-
-The full visual workflow with project management, guided fixes, and export bundles is available in [**fairy-lab**](https://github.com/yuummmer/fairy-lab):
-
-1. Create a new project workspace (all local).
-2. Upload your dataset (CSV, TSV, FASTQ, Excel, JSON, etc.).
-3. Choose your submission target(s): GEO, SRA, Zenodo, etc.
-4. Validate & audit: FAIRy shows you errors, warnings, and actionable fixes.
-5. Apply guided fixes on a working copy, or review/patch manually if preferred.
-6. Export a submission-ready package for your target repository — no surprises, no guessing.
-7. All fix history, audit logs, and provenance are saved in your local project.
-
-### Using the CLI (fairy-core)
-
-This repo provides the command-line interface:
-
-1. Point the CLI at your data files (TSV/CSV) and a rulepack.
-2. Run validation: `fairy preflight` or `fairy validate`.
-3. Review the JSON/Markdown reports with findings and `how_to_fix` guidance.
-4. Manually fix your data based on the reports.
-5. Re-run validation until `submission_ready: true`.
-6. Use the Python API (`export_submission()`) to create export bundles (or use fairy-lab UI).
-
----
-
-## 🚀 Why Use FAIRy?
-
-- No more “submission rejected, fix and resubmit” cycles.
-- Safe for sensitive data: nothing sent to the cloud unless you choose.
-- No lock-in: Integrate with your existing analysis notebooks/lab systems.
-- Community-driven templates: transparent, up-to-date, and user-hackable.
-- **For researchers**: Grad students, postdocs, and lab managers can save hours per submission.
-
-> 👉 **Institutions and labs interested in pilots or dashboards — we’d love to hear from you.**
-> Email **hello@datadabra.com** or open an issue with the label `pilot-inquiry`.
----
-
-## Quickstart (90 seconds)
-
-> Requires Python **3.10+**. On Windows with WSL: use **Linux paths** (e.g., `/home/…`), not `\\wsl.localhost\…`.
+### Example: GEO bulk RNA-seq (external rulepack repo)
 
 ```bash
-# 0) Python 3.10+
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+# Get the GEO rulepack repo (CC0)
+git clone https://github.com/yuummmer/fairy-rulepacks-geo.git
 
-# 1) Check CLI (after install, use: fairy --help)
-fairy --help
-fairy --version
+# Run preflight using its fixtures
+mkdir -p .tmp
 
-# 2) Preflight (GEO bulk RNA-seq; expects JSON rulepack)
-# (rulepack lives in the public CC0 repo fairy-rulepacks-geo)
 fairy preflight \
-  --rulepack /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_1_0.json \
-  --samples  /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/samples.tsv \
-  --files    /path/to/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/files.tsv \
+  --rulepack .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/v0_2_0.json \
+  --samples  .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/samples.tsv \
+  --files    .deps/fairy-rulepacks-geo/rulepacks/geo_bulk_seq/fixtures/files.tsv \
   --out      .tmp/geo_bulk_seq_report.json
-cat .tmp/geo_bulk_seq_report.md   # human summary
 
-# 3) Validate with custom rulepack (YAML or JSON)
-fairy validate \
-  --rulepack rulepacks/examples/penguins/rulepack.yml \
-  --inputs default=tests/fixtures/penguins_small.csv \
-  --report-json .tmp/penguins_report.json
+# View outputs:
+ls .tmp/
+cat .tmp/geo_bulk_seq_report.md | head -n 80  # or open in your editor
 
-# 4) Rulepack schema validation only
-python -m fairy.cli rulepack --rulepack demos/rulepacks/penguins.yml
 ```
+**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`, `regex`
+
+See [Rule types reference](./docs/rule-types.md) for complete documentation on all rule types and their configuration options.
+---
+## Reports
+
+- **JSON**: Structured v1.0.0 schema reports with deterministic ordering (see [`schemas/preflight_report_v1.schema.json`](schemas/preflight_report_v1.schema.json) and [`docs/reporting.md`](docs/reporting.md))
+- **Markdown**: Curator-friendly one-pager (generated alongside JSON)
+- **Exit code**: 0 if no FAIL, else 1
 
 ---
+
 ## Documentation
 
 For full documentation, see the [`docs/`](./docs) folder:
@@ -138,51 +135,29 @@ For full documentation, see the [`docs/`](./docs) folder:
 - [Kata gallery](./docs/katas/index.md)
 
 ---
-## 🐧 Rulepacks (YAML)
-
-Example rulepack (minimal shape):
-
-```yaml
-meta: { name: penguins-kata, version: "0.1.0", description: "Palmer Penguins checks" }
-rules:
-  - id: species_enum
-    type: enum
-    severity: fail
-    config: { column: species, allow: ["Adelie","Chinstrap","Gentoo"] }
-
-  - id: no_dups
-    type: no_duplicate_rows
-    severity: fail
-    config:
-      pattern: "penguins*.csv"
-      keys: [species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year]
-
-params: {}   # optional
-
-```
-
-**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`, `regex`
-
-See [Rule types reference](./docs/rule-types.md) for complete documentation on all rule types and their configuration options.
-
-## Reports
-
-- **JSON**: Structured v1.0.0 schema reports with deterministic ordering (see [`schemas/preflight_report_v1.schema.json`](schemas/preflight_report_v1.schema.json) and [`docs/reporting.md`](docs/reporting.md))
-- **Markdown**: Curator-friendly one-pager (generated alongside JSON)
-- **Exit code**: 0 if no FAIL, else 1
-
----
 
 ## Development
 ```bash
-# Tests (coverage scoped to cli + rulepack)
+pip install -e ".[dev]"
 pytest -q
-
-# Lint/format
 ruff check . --fix
 ruff format .
+```
+### Developer notes
+- Source files use SPDX headers:
+```python
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2025 Jennifer Slotnick
+```
+- We package rulepacks as package data:
+```toml
+[tool.setuptools.package-data]
+fairy = ["rulepacks/**/*.json","rulepacks/**/*.yaml","rulepacks/**/*.yml"]
 
 ```
+- Local artifacts to ignore are preconfigured (.tmp/, .venv/, __pycache__/).
+
+
 - Coverage config: .coveragerc, pytest.ini
 - Demo fixtures: tests/fixtures/*, demos/
 ---
@@ -202,11 +177,6 @@ decisions/     # Architecture Decision Records (ADRs)
 ```
 
 See [Architecture Decision Records](decisions/README.md) for major design decisions and rationale.
----
-## Want a longer guide?
-
-See the [Documentation](#documentation) section above for detailed guides. For project management, guided fixes, and visual demos, see [fairy-lab](https://github.com/yuummmer/fairy-lab).
-
 ---
 
 ## License
@@ -231,19 +201,6 @@ cannot adopt AGPL. See [`COMMERCIAL.md`](./COMMERCIAL.md) or contact
 
 ---
 
-## Developer notes
-- Source files use SPDX headers:
-```python
-# SPDX-License-Identifier: AGPL-3.0-only
-# Copyright (c) 2025 Jennifer Slotnick
-```
-- We package rulepacks as package data:
-```toml
-[tool.setuptools.package-data]
-fairy = ["rulepacks/**/*.json","rulepacks/**/*.yaml","rulepacks/**/*.yml"]
-
-```
-- Local artifacts to ignore are preconfigured (.tmp/, .venv/, __pycache__/).
 
 ---
 
@@ -265,9 +222,22 @@ If you use FAIRy in a project, demo, or talk, please cite:
 FAIRy (v0.2). Local-first validator for FAIR research data.
 FAIRy-core (engine): https://github.com/yuummmer/fairy-core
 FAIRy Lab (UI & labs): https://github.com/yuummmer/fairy-lab
+---
 
 ## Roadmap
 - Rulepack adapters (aliases, NA sentinels, regex/type coercions, unit enums)
 - Multi-input CLI UX (auto-detect TSV/CSV, merge on sample_id)
 - Richer provenance + determinism tests (goldens)
 - Export bundle CLI command (currently available via Python API)
+---
+
+## Who FAIRy is for
+
+- Researchers and lab teams tired of “submission rejected → fix → resubmit” loops.
+- Anyone handling sensitive/pre-publication data who needs local-first validation.
+- Curators and institutions who want consistent, transparent, hackable validation templates.
+---
+## Pilots / institutional use
+
+Institutions and labs interested in pilots or dashboards — we’d love to hear from you.
+Email **hello@datadabra.com** or open an issue labeled `pilot-inquiry`.
