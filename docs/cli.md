@@ -22,6 +22,43 @@ To check the version:
 fairy --version
 ```
 
+## Command overview
+
+FAIRy has three main commands, each with a distinct purpose:
+
+### `fairy validate` — The engine command
+
+**Purpose**: Evaluate rules against inputs and produce a validation result. Think: "run the checks."
+
+- **Inputs**: Dataset files + rulepack
+- **Output**: Validation report object / report files (minimal opinions about "handoff" or "where to put outputs")
+- **Use when**: Iterating on a rulepack, fast checks in CI, or when you don't need the full "preflight" workflow
+
+### `fairy preflight` — The human-friendly default
+
+**Purpose**: A guided workflow on top of validate. Think: "prepare this dataset for submission/handoff."
+
+- **Includes**: Running validate, writing standard FAIRy artifacts (report.json/md, manifest, provenance, etc.), nicer summaries, next steps, warnings about common gotchas
+- **Use when**: This is the main user-facing command for humans preparing datasets for handoff
+- **Future**: Will support `--bundle bagit` flag to create handoff-ready containers (see [ADR-0005](../decisions/0005-packaging-as-first-class-packagers.md))
+
+### `--bundle bagit` (optional, on preflight) — The delivery format
+
+**Purpose**: Package inputs + FAIRy artifacts for transfer. Think: "wrap it so I can ship it."
+
+- **Use when**: You need a handoff-ready container with integrity guarantees
+- **Status**: Planned feature (see [ADR-0005](../decisions/0005-packaging-as-first-class-packagers.md))
+
+**Mental model:**
+- `validate` = checks
+- `preflight` = checks + outputs + guidance
+- `bundle` = delivery format (optional)
+
+**Positioning:**
+- Most users should run `preflight`
+- Use `validate` for automation, rulepack development, or CI
+- This keeps UX coherent and avoids command sprawl
+
 ## Commands
 
 ### `fairy validate`
