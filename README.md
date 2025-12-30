@@ -53,9 +53,7 @@ code .tmp/penguins_report.md
 - **UI (fairy-lab)**: local project workspaces, guided fixes, visual workflow, export bundles.
   → https://github.com/yuummmer/fairy-lab
 
-- **CLI (this repo)**: run `fairy preflight` (human-friendly default) or `fairy validate` (engine command) against a rulepack, review JSON/Markdown reports, iterate until submission-ready.
-
-  **Command overview**: `validate` = checks; `preflight` = checks + outputs + guidance. Most users should run `preflight`. See [CLI usage](docs/cli.md) for details.
+- **CLI (this repo)**: run `fairy preflight` / `fairy validate` against a rulepack, review JSON/Markdown reports, iterate until submission-ready.
 
 ---
 ## Quickstart
