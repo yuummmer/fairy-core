@@ -1,0 +1,99 @@
+meta:
+  name: penguins-kata
+  version: 0.2.0
+  description: Custom checks for Palmer Penguins
+
+rules:
+  - id: required_core
+    type: required
+    severity: fail
+    config:
+      pattern: "penguins*.csv"
+      columns:
+        - species
+        - island
+        - bill_length_mm
+        - bill_depth_mm
+        - flipper_length_mm
+        - body_mass_g
+        - sex
+        - year
+
+  - id: no_dups
+    type: no_duplicate_rows
+    severity: fail
+    config:
+      pattern: "penguins*.csv"
+      keys: [species, island, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, sex, year]
+
+  - id: species_enum
+    type: enum
+    severity: fail
+    config:
+      pattern: "penguins*.csv"
+      column: species
+      allow: ["Adelie", "Chinstrap", "Gentoo"]
+
+  - id: island_enum
+    type: enum
+    severity: fail
+    config:
+      pattern: "penguins*.csv"
+      column: island
+      allow: ["Biscoe", "Dream", "Torgersen"]
+
+  - id: sex_enum
+    type: enum
+    severity: warn
+    config:
+      pattern: "penguins*.csv"
+      column: sex
+      allow: ["male", "female"]
+      normalize: { casefold: true, trim: true }
+
+  - id: bill_len_range
+    type: range
+    severity: warn
+    config:
+      pattern: "penguins*.csv"
+      column: bill_length_mm
+      min: 30
+      max: 60
+      inclusive: true
+
+  - id: bill_depth_range
+    type: range
+    severity: warn
+    config:
+      pattern: "penguins*.csv"
+      column: bill_depth_mm
+      min: 13
+      max: 22
+      inclusive: true
+
+  - id: flipper_range
+    type: range
+    severity: warn
+    config:
+      pattern: "penguins*.csv"
+      column: flipper_length_mm
+      min: 170
+      max: 235
+      inclusive: true
+
+  - id: mass_range
+    type: range
+    severity: warn
+    config:
+      pattern: "penguins*.csv"
+      column: body_mass_g
+      min: 2700
+      max: 6300
+      inclusive: true
+
+  - id: row_uid_optional
+    type: unique
+    severity: warn
+    config:
+      pattern: "penguins*.csv"
+      columns: ["row_id"]
