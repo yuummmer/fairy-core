@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "sha256:8d65bb798164160994a781b6882514260f0d9dae155ffe0365029212dd884167",
+  "created_at_utc": "2026-01-01T12:34:56Z",
+  "fairy_version": "0.2.0",
+  "hash_algorithm": "sha256",
+  "rulepack": {
+    "id": "GEO-SEQ-BULK",
+    "version": "0.1.0"
+  },
+  "source_report": "preflight_report.json",
+  "files": []
+}

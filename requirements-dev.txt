@@ -6,3 +6,4 @@ hypothesis>=6.112
 black>=24.8
 ruff>=0.6
 pre-commit>=4.0
+jsonschema>=4.22

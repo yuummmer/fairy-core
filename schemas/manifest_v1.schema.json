@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jenniferslotnick/fairy-core/schemas/manifest_v1.schema.json",
+  "title": "FAIRy Bundle Manifest v1",
+  "type": "object",
+  "required": ["schema_version", "dataset_id", "created_at_utc", "fairy_version", "hash_algorithm", "rulepack", "source_report", "files"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "Identity of the validated dataset snapshot (inputs/rulepack/params), not the bundle hash. Matches preflight report dataset_id."
+    },
+    "attestation_id": {
+      "type": "string",
+      "pattern": "^fairy:attest:[a-f0-9]{8,64}$",
+      "description": "Link to PASS attestation stamp (present when validation passed)"
+    },
+    "source_report": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*\\.{2})(?!.*\\\\).+",
+      "description": "Relative path to the preflight report JSON within the bundle (e.g., \"preflight_report.json\")"
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp when the bundle was created"
+    },
+    "fairy_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "description": "Semantic version of FAIRy that created this bundle (e.g., \"0.2.0\", \"0.2.0-rc1\", \"0.2.0+abc123\")"
+    },
+    "hash_algorithm": {
+      "type": "string",
+      "const": "sha256",
+      "description": "Hash algorithm used for file integrity verification (currently sha256)"
+    },
+    "rulepack": {
+      "type": "object",
+      "required": ["id", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Rulepack identifier"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Rulepack version"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 hash of rulepack file (optional)"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 0,
+      "uniqueItems": true,
+      "description": "Array of files in the bundle. Note: paths must be unique (enforced in code/tests; uniqueItems only prevents identical entire objects).",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "role"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\.{2})(?!.*\\\\).+",
+            "description": "Relative path from bundle root (must not be absolute, contain '..', or contain backslashes)"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash of file contents (required for bundle integrity verification)"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "File size in bytes (optional, if cheap to compute)"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["data", "metadata", "report", "log", "other"],
+            "description": "File role in the bundle"
+          }
+        }
+      }
+    }
+  }
+}

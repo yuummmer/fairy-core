@@ -70,6 +70,8 @@ A structured manifest gives us a natural place to hang additional provenance fie
 
 ## Implementation Notes
 
+The manifest schema is defined in [`schemas/manifest_v1.schema.json`](../../schemas/manifest_v1.schema.json). The manifest file (`manifest.json`) is written to the bundle root directory.
+
 The manifest will be generated as part of the existing bundle creation step in FAIRy:
 
 - Use `compute_dataset_id()` on the preflight report JSON to populate `dataset_id`.
