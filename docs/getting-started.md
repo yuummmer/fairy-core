@@ -1,5 +1,7 @@
 # Getting started with FAIRy-core
 
+**This is the canonical product onboarding page for stewards and new users.**
+
 This guide walks through installing FAIRy-core and running your first validation
 check on a small dataset.
 
@@ -21,7 +23,17 @@ FAIRy is a validation tool that checks your research datasets against repository
 
 ### What FAIRy produces
 
-When FAIRy finishes, it produces an attested bundle that includes:
+When FAIRy finishes, it produces validation reports:
+
+- **`preflight_report.json`** — Full validation results with detailed findings
+- **`preflight_report.md`** — Human-readable summary report
+
+<!-- ============================================ -->
+<!-- MANIFEST V1 SPOTLIGHT - TOGGLE ON/OFF       -->
+<!-- When Manifest v1 ships, uncomment below:   -->
+<!-- ============================================ -->
+<!--
+**Coming soon / when using bundle:** FAIRy will produce an attested bundle that includes:
 
 - **`preflight_report.json`** — Full validation results with detailed findings
 - **`manifest.json`** — A structured manifest containing:
@@ -36,6 +48,9 @@ You don't need to memorize the hash—it's mainly for:
 - Linking this dataset to other systems (submission forms, internal trackers)
 
 Think of `dataset_id` like a barcode for "this exact dataset version."
+
+**Manifest v1:** In Manifest v1, the provenance section becomes a stable contract via `manifest.json`, which records `dataset_id`, rulepack version, `created_at`, source report, and a typed list of files with roles + hashes.
+-->
 
 ### What you'll learn in this guide
 
@@ -53,11 +68,80 @@ You don't need to be a programmer to use FAIRy—if you can use a command line (
 
 - Python 3.10 or higher
 - pip (Python package installer)
-- Git (to clone the repository)
 
 ---
 
-## 1. Install FAIRy-core
+## 1. Install FAIRy (users)
+
+If you're a data steward or user who wants to validate datasets, follow these steps to install FAIRy-core from a release.
+
+### Step 1: Create a virtual environment
+
+A virtual environment isolates FAIRy-core's dependencies from your system Python. Choose the method that works for your system:
+
+#### Option A: Using Python's built-in venv (Linux, macOS, Windows)
+
+**Linux and macOS:**
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+**Windows (Command Prompt):**
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+**Windows with WSL (Windows Subsystem for Linux):**
+Use the Linux instructions above. Note: use Linux paths (e.g., `/home/…`), not `\\wsl.localhost\…`.
+
+#### Option B: Using Conda
+
+If you prefer using Conda:
+
+```bash
+conda create -n fairy-core python=3.10
+conda activate fairy-core
+```
+
+### Step 2: Install FAIRy-core
+
+Once your virtual environment is activated (you should see `(.venv)` or `(fairy-core)` in your prompt), install FAIRy-core from a GitHub release tag:
+
+```bash
+pip install -U pip
+pip install "git+https://github.com/yuummmer/fairy-core.git@<VERSION>"
+```
+
+**Note:** Replace `<VERSION>` with a specific release tag (e.g., `v0.2.2`) or commit SHA. Check [releases](https://github.com/yuummmer/fairy-core/releases) for the latest version. Never use `@main` for production use.
+
+### Step 3: Verify installation
+
+Check that FAIRy-core is installed correctly:
+
+```bash
+fairy --version
+fairy --help
+```
+
+---
+
+## 2. Developing FAIRy (contributors)
+
+If you're contributing to FAIRy-core development, you'll need to clone the repository and install it in editable mode.
+
+### Prerequisites for contributors
+
+- Python 3.10 or higher
+- pip (Python package installer)
+- Git (to clone the repository)
 
 ### Step 1: Clone the repository
 
@@ -102,9 +186,9 @@ conda create -n fairy-core python=3.10
 conda activate fairy-core
 ```
 
-### Step 3: Install FAIRy-core
+### Step 3: Install FAIRy-core in editable mode
 
-Once your virtual environment is activated (you should see `(.venv)` or `(fairy-core)` in your prompt), install FAIRy-core:
+Once your virtual environment is activated (you should see `(.venv)` or `(fairy-core)` in your prompt), install FAIRy-core in editable mode with development dependencies:
 
 ```bash
 pip install -U pip
@@ -125,9 +209,11 @@ fairy --version
 fairy --help
 ```
 
+For more information about contributing, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+
 ---
 
-## 2. Run your first validation check
+## 3. Run your first validation check
 
 Let's run a simple validation using the included penguins example dataset.
 
@@ -218,7 +304,7 @@ For a deeper explanation of the report structure, see [Reporting](./reporting.md
 
 ---
 
-## 3. Run a preflight check (GEO-style datasets)
+## 4. Run a preflight check (GEO-style datasets)
 
 The `fairy preflight` command is designed for GEO-style bulk RNA-seq datasets that use separate `samples.tsv` and `files.tsv` files.
 
@@ -248,15 +334,16 @@ fairy preflight `
 
 ### Step 2: View the preflight report
 
-The preflight command generates both JSON and Markdown reports:
+The preflight command generates a JSON report at the path specified with `--out`:
 - **JSON report**: `out/geo-report.json` (specified with `--out`)
-- **Markdown report**: `out/geo-report.md` (automatically generated with `.md` extension)
 
-View the reports using the same commands as shown in section 2.
+Depending on version, FAIRy may also write a Markdown report (e.g., `out/geo-report.md`); otherwise pass an explicit flag or use `--report-md` where supported.
+
+View the reports using the same commands as shown in section 3.
 
 ---
 
-## 4. Multi-input (multiple tables)
+## 5. Multi-input (multiple tables)
 
 FAIRy-core supports validating multiple tables in a single run. Use repeatable `--inputs name=path` flags to specify each table with a name:
 
@@ -302,7 +389,7 @@ fairy validate path/to/folder --rulepack path/to/rulepack.yaml --report-json out
 ```
 
 ---
-## 5. Params/config files (--param-file)
+## 6. Params/config files (--param-file)
 
 You can pass tunable parameters to FAIRy validation runs using the `--param-file` flag. Parameters are loaded from a YAML file and injected into the validation context at `ctx["params"]`.
 
@@ -320,14 +407,14 @@ fairy preflight \
 For detailed information about parameter files, including format, error handling, and how to access parameters in rules, see the [Parameter files guide](./params.md).
 
 ---
-## 6. Next steps
+## 7. Next steps
 - Explore additional rule types and rulepacks (see [Rule types reference](./rule-types.md))
 - Try a multi-input run (multiple tables) once you're comfortable.
 - If you run into rough edges, please open an issue in the tracker.
 
 ---
 
-## 7. Learn more
+## 8. Learn more
 
 - **Rule types**: See the [Rule types reference](./rule-types.md) for complete documentation on all available rule types
 - **Kata gallery**: See the [Kata gallery](katas/index.md) for small, focused examples that show FAIRy-core validating real-ish datasets
@@ -337,8 +424,13 @@ For detailed information about parameter files, including format, error handling
 
 ---
 
-## 8. Example scenario: Coming back from vacation
+## 9. Example scenario: Coming back from vacation
 
+<!-- ============================================ -->
+<!-- MANIFEST V1 SPOTLIGHT - TOGGLE ON/OFF       -->
+<!-- When Manifest v1 ships, uncomment below:   -->
+<!-- ============================================ -->
+<!--
 You validated a large museum dataset with FAIRy before going on leave. When you return, you see three different ZIP files named:
 - `museum_export_final_v3.zip`
 - `museum_export_final_v3_copy.zip`
@@ -349,3 +441,4 @@ By opening each FAIRy bundle and checking the `dataset_id` in the `manifest.json
 - `sha256:efgh…` (unique)
 
 You can see that two bundles are identical and already validated, and one is a truly new dataset version. You only need to review the report for the new `dataset_id`.
+-->
