@@ -61,3 +61,7 @@ out/
 
 # Personal PR scratch
 /docs/prs/
+
+# Local demo scripts (DSLC)
+docs/demos/dslc-demo.md
+docs/internal/
