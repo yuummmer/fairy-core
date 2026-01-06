@@ -65,3 +65,4 @@ out/
 # Local demo scripts (DSLC)
 docs/demos/dslc-demo.md
 docs/internal/
+.deps/
