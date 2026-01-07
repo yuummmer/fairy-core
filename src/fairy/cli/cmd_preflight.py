@@ -105,12 +105,12 @@ def main(args) -> int:
         {
             "path": args.out.name,
             "sha256": sha256_file(args.out, newline_stable=True),
-            "role": "report_json",
+            "role": "report",
         },
         {
             "path": md_path.name,
             "sha256": sha256_file(md_path, newline_stable=True),
-            "role": "report_md",
+            "role": "report",
         },
     ]
 
