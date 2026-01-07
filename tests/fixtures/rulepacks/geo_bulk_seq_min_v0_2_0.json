@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "assay_type": [
+      "RNA-seq",
+      "ATAC-seq",
+      "ChIP-seq",
+      "methyl-seq"
+    ],
+    "description": "Bulk (pooled) sequencing submissions to GEO. One row per biological sample; excludes single-cell and spatial.",
+    "id": "GEO-SEQ-BULK",
+    "mode": "bulk",
+    "name": "geo_bulk_seq",
+    "repository": "GEO",
+    "title": "GEO bulk sequencing",
+    "version": "0.2.0"
+  },
+  "rules": [
+    {
+      "check": {
+        "required_columns": [
+          "sample_title",
+          "organism",
+          "library_strategy",
+          "molecule",
+          "instrument_model"
+        ],
+        "target_file": "samples.tsv",
+        "type": "require_columns"
+      },
+      "code": "GEO.REQ.MISSING_FIELD",
+      "how_to_fix": "Add the missing column(s); fill every row with allowed values.",
+      "id": "GEO.REQ.MISSING_FIELD",
+      "severity": "FAIL",
+      "type": "check",
+      "where": "samples.tsv (library_strategy, molecule, instrument_model, sample_title, organism)",
+      "why": "GEO requires these fields for each sample."
+    }
+  ]
+}
