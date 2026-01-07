@@ -92,12 +92,13 @@ def run_rulepack(
     pack = rp.model_dump()
 
     # Build metadata.rulepack with provenance
-    rulepack_sha256 = sha256_file(rulepack_path)
     meta = pack.get("meta") or {}
 
-    rulepack_name = meta.get("name") or pack.get("rulepack_name") or "UNKNOWN_RULEPACK"
-    rulepack_id = meta.get("id") or pack.get("rulepack_id") or rulepack_name
-    rulepack_version = meta.get("version") or pack.get("rulepack_version") or "0.0.0"
+    rp_name = meta.get("name") or pack.get("rulepack_name") or "UNKNOWN_RULEPACK"
+    rp_id = meta.get("id") or pack.get("rulepack_id") or rp_name
+    rp_version = meta.get("version") or pack.get("rulepack_version") or "0.0.0"
+    rp_source_path = str(rulepack_path)
+    rp_sha256 = sha256_file(rulepack_path)
 
     # 2. load dataframes
     samples_df = pd.read_csv(samples_path, sep="\t", dtype=str).fillna("")
@@ -236,9 +237,9 @@ def run_rulepack(
 
     # Build attestation (without inputs - metadata.inputs is canonical)
     attestation = {
-        "rulepack_id": rulepack_id,
-        "rulepack_version": rulepack_version,
-        "rulepack_name": rulepack_name,
+        "rulepack_id": rp_id,
+        "rulepack_version": rp_version,
+        "rulepack_name": rp_name,
         "fairy_version": fairy_version,
         "run_at_utc": now_utc_iso(),
         "submission_ready": (fail_count == 0),
@@ -256,25 +257,19 @@ def run_rulepack(
         params_sha256 = params_hash_obj.hexdigest()
 
     rulepack_metadata = RulepackMetadata(
-        path=str(rulepack_path),
-        sha256=rulepack_sha256,
-        id=rulepack_id,
-        version=rulepack_version,
+        path=rp_source_path,
+        sha256=rp_sha256,
+        id=rp_id,
+        version=rp_version,
         params_sha256=params_sha256,
     )
-
-    # New canonical provenance fields
-    rulepack_id = meta.get("id") or pack.get("rulepack_id", "UNKNOWN_RULEPACK")
-    rulepack_ver = meta.get("version") or pack.get("rulepack_version", "0.0.0")
-    rulepack_name = meta.get("name") or pack.get("rulepack", rulepack_id)
-    rulepack_source_path = rulepack_metadata.path
 
     attestation.update(
         {
             "fairy_core_version": FAIRY_CORE_VERSION,
-            "rulepack_name": rulepack_name,
-            "rulepack_version": rulepack_ver,
-            "rulepack_source_path": str(rulepack_source_path),
+            "rulepack_name": rp_name,
+            "rulepack_version": rp_version,
+            "rulepack_source_path": rp_source_path,
         }
     )
 
@@ -330,9 +325,9 @@ def run_rulepack(
         # Optional fields for future extensibility
         "engine": {"fairy_core_version": FAIRY_CORE_VERSION},
         "attestation": {
-            "rulepack_name": rulepack_name,
-            "rulepack_version": rulepack_ver,
-            "rulepack_source_path": str(rulepack_path),
+            "rulepack_name": rp_name,
+            "rulepack_version": rp_version,
+            "rulepack_source_path": rp_source_path,
         },
         # Keep old structure temporarily for backward compatibility during migration
         "_legacy": {

@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ..core.services.manifest import build_manifest_v1
+from ..core.services.provenance import sha256_file
 from ..core.services.validator import run_rulepack
 from .common import ParamsFileError, load_params_file
 from .output_md import emit_preflight_markdown
@@ -91,6 +93,41 @@ def main(args) -> int:
     md_path = args.out.with_suffix(".md")
     # Pass new structure to markdown emitter (it will handle the migration)
     emit_preflight_markdown(md_path, report, resolved_codes, prior_codes)
+
+    # --- Manifest v1: always emit manifest.json in output dir ---
+    manifest_path = args.out.parent / "manifest.json"
+
+    rulepack_meta = report.get("metadata", {}).get("rulepack", {})
+    rp_id = rulepack_meta.get("id") or "UNKNOWN_RULEPACK"
+    rp_version = rulepack_meta.get("version") or "0.0.0"
+
+    files_list = [
+        {
+            "path": args.out.name,
+            "sha256": sha256_file(args.out, newline_stable=True),
+            "role": "report_json",
+        },
+        {
+            "path": md_path.name,
+            "sha256": sha256_file(md_path, newline_stable=True),
+            "role": "report_md",
+        },
+    ]
+
+    manifest = build_manifest_v1(
+        dataset_id=report["dataset_id"],
+        created_at_utc=report["generated_at"],
+        fairy_version=report.get("engine", {}).get("fairy_core_version", args.fairy_version),
+        rulepack_id=rp_id,
+        rulepack_version=rp_version,
+        source_report=args.out.name,
+        files=files_list,
+    )
+
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
 
     # Console summary (trimmed)
     print("")
