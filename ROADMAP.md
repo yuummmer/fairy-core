@@ -4,25 +4,31 @@ This roadmap reflects current pilot-driven priorities. It is not a promise; prio
 
 **Give feedback / request features:** please comment in [GitHub Discussions → Roadmap & Feedback](https://github.com/yuummmer/fairy-core/discussions) (pinned thread).
 
+_Last updated: 2026-01-08_
+
+## Recently shipped
+
+- **Regex / pattern rule type** — Validates string formats or detects forbidden patterns using regular expressions. Documented in [rule types reference](docs/rule-types.md).
+- **Remediation links** — Rules can include `remediation_link_column` and `remediation_link_label` to provide clickable links for fixing validation failures. Links appear in both JSON and markdown reports (with capping in markdown). Documented in [reporting guide](docs/reporting.md).
+- **URL normalization + validation** — URL rule type handles scheme-less URLs (e.g., `www.example.org` automatically normalized to `https://www.example.org`). Documented in [rule types reference](docs/rule-types.md).
+
 ## Now (next 2–4 weeks)
 
 ### Pilot-critical reliability
 
+- **Preflight evolution to universal operator mode** (see [ADR-0007](decisions/0007-profiles-as-workflow-composition.md); bundling integration: [ADR-0005](decisions/0005-packaging-as-first-class-packagers.md))
+  - Preflight is intended to be universal operator mode by design; current GEO TSV-specific implementation will move under `preflight geo` / profiles
+  - Profiles as workflow composition over rulepacks
+  - Preflight becoming profile-based + output-dir oriented
+- **Manifest v1 (ADR-0003)**
+  - Preflight emits `manifest.json` in standard outputs with dataset identity + provenance + file roles
+  - Includes determinism tests
 - **Cross-platform deterministic outputs**
   - Make dataset hashing newline-stable (`\r\n` → `\n`) before sha256
   - Keep "volatile fields" normalization consistent in golden tests
 - **Report stability**
   - Finalize JSON report schema v1 (and document backwards compatibility story)
   - Ensure markdown output stays readable (caps + clear "showing first N" messaging)
-
-### High-value validation features (pilot-driven)
-
-- **Regex / pattern rule type** (for ID validation and other pattern matching needs)
-- **URL normalization + validation** (scheme-less URLs like `www.` and safe normalization)
-- **Remediation links**
-  - Keep JSON as the full fidelity source of truth
-  - Markdown shows capped list + clear note that full list is in JSON
-  - Apply remediation links for "row-level failures only" (nullish rows); do not attach remediation to missing-columns failures
 
 ### Rulepack authoring + community readiness
 
@@ -34,8 +40,9 @@ This roadmap reflects current pilot-driven priorities. It is not a promise; prio
 
 **Definition of done for "Now":**
 
-- Example rulepack uses regex + remediation links and produces clean JSON + readable markdown output.
-- Darwin Core example repo exists and is runnable with sample outputs.
+- `fairy preflight` supports profiles (at least geo + generic) and writes to an output directory for handoff artifacts.
+- Cross-platform deterministic outputs are stable (newline normalization + golden normalization locked by tests).
+- JSON report schema v1 is finalized and documented (including backwards compatibility expectations).
 
 ## Next (after Now)
 

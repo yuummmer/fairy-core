@@ -227,10 +227,12 @@ FAIRy Lab (UI & labs): https://github.com/yuummmer/fairy-lab
 ---
 
 ## Roadmap
-- Rulepack adapters (aliases, NA sentinels, regex/type coercions, unit enums)
-- Multi-input CLI UX (auto-detect TSV/CSV, merge on sample_id)
-- Richer provenance + determinism tests (goldens)
-- Export bundle CLI command (currently available via Python API)
+
+- Profiles as workflow composition over rulepacks (see [ADR-0007](decisions/0007-profiles-as-workflow-composition.md))
+- Preflight evolving to universal operator mode (profile-based + output-dir oriented)
+
+For the full roadmap, see [ROADMAP.md](ROADMAP.md).
+
 ---
 
 ## Who FAIRy is for
