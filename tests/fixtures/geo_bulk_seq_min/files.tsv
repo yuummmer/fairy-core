@@ -1,0 +1,5 @@
+sample_id	layout	filename
+S1	PAIRED	S1_R1.fastq.gz
+S1	PAIRED	S1_R2.fastq.gz
+S2	PAIRED	S2_R1.fastq.gz
+S2	PAIRED	S2_R2.fastq.gz
