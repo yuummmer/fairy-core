@@ -5,6 +5,13 @@
 **Deciders:** Jennifer Slotnick
 **Tags:** architecture, packaging, handoff, bagit
 
+## Update (2026-01-05)
+
+Clarifications to the original proposal:
+- Preflight is intended to be universal operator mode by design; the current GEO TSV-specific implementation will move under `preflight geo` / profiles.
+- Bundling remains invoked from preflight (unchanged).
+- This ADR accepts the architecture decision (packagers/bundles as first-class) while keeping BagIt implementation details as "next steps" since implementation has not yet started.
+
 ## Context
 
 ### How FAIRy operates today
@@ -12,10 +19,12 @@
 FAIRy has three commands with distinct purposes:
 
 - **`fairy validate`** — The engine command: runs checks and produces validation reports
-- **`fairy preflight`** — The human-friendly default: runs checks + produces handoff-ready artifacts + guidance
+- **`fairy preflight`** — The human-friendly entrypoint by design, but today it's GEO TSV-specific; it will become profile-based + output-dir oriented
 - **`--bundle bagit`** (planned) — Optional delivery format: packages inputs + outputs for transfer
 
 **Mental model:** `validate` = checks; `preflight` = checks + outputs + guidance; `bundle` = delivery format (optional)
+
+**Note:** Preflight is intended to be universal operator mode. The current GEO-specific implementation will move under `preflight geo` / profiles as the command evolves to be profile-based.
 
 For detailed command documentation, see [CLI usage](../docs/cli.md).
 
@@ -39,20 +48,24 @@ Introduce a new concept in FAIRy-core: **Packagers (aka Exporters)**.
   - FAIRy-generated outputs (reports/manifest/etc),
   - packager configuration (algorithm/options).
 
-Ship **BagIt** as the first official packager implementation.
-
 **Workflow integration:**
-- `fairy preflight` remains the primary user entrypoint (the human-friendly default).
+- `fairy preflight` remains the primary user entrypoint (the human-friendly default, universal operator mode).
 - Bundling is an output/export capability that can be invoked from preflight via `--bundle bagit` flag.
   - `fairy preflight ...` → creates the handoff-ready artifacts
   - `fairy preflight ... --bundle bagit` → additionally creates a handoff-ready container
 - `fairy bundle` as a standalone command is a power-user convenience (optional for later implementation).
 - Preflight produces the things you want to hand off; bundling produces the container you hand off in.
 
-**v0 "Done" criteria:**
-- Single CLI flag `--bundle bagit` on `fairy preflight` command
-- BagIt bundle validates with the chosen library's validation (e.g., `bagit.validate()`)
-- Deterministic output paths (as specified in directory layout convention)
+**Architecture decision (accepted):**
+- Packagers/bundles are first-class concepts in FAIRy-core.
+- Bundling remains invoked from preflight.
+- Preflight is universal operator mode; current GEO-specific implementation will move under `preflight geo` / profiles.
+
+**Next steps (implementation not yet started):**
+- Ship **BagIt** as the first official packager implementation.
+- Single CLI flag `--bundle bagit` on `fairy preflight` command.
+- BagIt bundle validates with the chosen library's validation (e.g., `bagit.validate()`).
+- Deterministic output paths (as specified in directory layout convention).
 
 ## Rationale
 
@@ -199,11 +212,15 @@ This is advisory/enforcement for UX and future automation; v0 may only surface i
 
 ## Notes
 
-- Implementation will be in `src/fairy/packaging/` module (internal term: "Packager"; user-facing term: "Bundle")
-- BagIt packager will use the `bagit` Python library (RFC 8493 compliant)
-- Rulepack schema will be extended to support optional `recommended_packagers` and `required_packagers` fields
-- Primary CLI integration: `--bundle` flag on `fairy preflight` command
-- Optional later: standalone `fairy bundle` command for power users
-- Optional later: `fairy verify-bundle` command for bundle verification
-- Follow-up: Consider BagIt Profiles if/when a partner requires strict profile enforcement
-- Follow-up: Consider minimal FAIRy Lab wrapper only after at least one partner requests non-CLI operation
+**Architecture (accepted):**
+- Packagers/bundles as first-class concepts in FAIRy-core.
+- Implementation will be in `src/fairy/packaging/` module (internal term: "Packager"; user-facing term: "Bundle").
+- Primary CLI integration: `--bundle` flag on `fairy preflight` command.
+- Rulepack schema will be extended to support optional `recommended_packagers` and `required_packagers` fields.
+
+**Next steps (implementation not yet started):**
+- BagIt packager will use the `bagit` Python library (RFC 8493 compliant).
+- Optional later: standalone `fairy bundle` command for power users.
+- Optional later: `fairy verify-bundle` command for bundle verification.
+- Follow-up: Consider BagIt Profiles if/when a partner requires strict profile enforcement.
+- Follow-up: Consider minimal FAIRy Lab wrapper only after at least one partner requests non-CLI operation.
