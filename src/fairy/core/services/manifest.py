@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 Role = Literal["data", "metadata", "report", "log", "other"]
+VALID_ROLES: set[str] = {"data", "metadata", "report", "log", "other"}
 
 
 def now_utc_iso_z() -> str:
@@ -17,6 +18,8 @@ def infer_role(relpath: str) -> Role:
     name = p.rsplit("/", 1)[-1].lower()
 
     # Metadata artifacts
+    # Treat input manifests as metadata,
+    # not payload data (payload comes later when bundling raw files)
     if name == "manifest.json":
         return "metadata"
     if name in {"samples.tsv", "files.tsv"}:
@@ -28,7 +31,7 @@ def infer_role(relpath: str) -> Role:
 
     # Reports (FAIRy outputs)
     # (Matches your current convention: *report*.json / *report*.md)
-    if ("report" in name) and name.endswith((".json", ".md")):
+    if name.endswith(("_report.json", "_report.md", "report.json", "report.md")):
         return "report"
 
     # Data payloads (future-proof; ok to be broad)
@@ -40,11 +43,21 @@ def infer_role(relpath: str) -> Role:
 
 def _ensure_roles(files: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
+
     for f in files:
         ff = dict(f)
+
+        # Fill missing role
         if not ff.get("role"):
             ff["role"] = infer_role(str(ff.get("path", "")))
+
+        # Normalize + validate role
+        ff["role"] = cast(Role, ff["role"])
+        if ff["role"] not in VALID_ROLES:
+            raise ValueError(f"Unknown role: {ff['role']} (path={ff.get('path')})")
+
         out.append(ff)
+
     return out
 
 

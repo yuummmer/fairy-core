@@ -64,6 +64,44 @@
         }
       }
     },
+
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fairy_core_version": {
+          "type":"string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "description": "Explicit fairy-core engine version used to generate the report/bundle (same as report.engine.fairy_core_version)."
+        },
+        "rulepack_source_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*\\.{2})(?!.*\\\\).+",
+          "description": "Relative path to the rulepack source used to generate this bundle (optional; prefer relative paths)."
+        },
+        "inputs":{
+          "type":"array",
+          "minItems": 0,
+          "items": {
+            "type":"object",
+            "required": ["name", "path", "sha256"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "path":{
+                "type":"string",
+                "minLength": 1,
+                "pattern": "^(?!/)(?!.*\\.{2})(?!.*\\\\).+"
+              },
+              "sha256": {"type": "string","pattern": "^[a-f0-9]{64}$" },
+              "bytes": {"type":"integer", "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+
     "files": {
       "type": "array",
       "minItems": 0,
