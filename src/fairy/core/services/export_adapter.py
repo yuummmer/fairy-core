@@ -4,16 +4,17 @@
 # fairy/core/services/export_adapter.py
 from __future__ import annotations
 
-import hashlib
 import json
-import os
 import shutil
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from ...cli.output_md import emit_preflight_markdown  # reuse your MD emitter
 from ...cli.run import FAIRY_VERSION
+from ..services.manifest import build_manifest_v1
+from ..services.provenance import sha256_file
 from ..services.validator import run_rulepack
 
 
@@ -22,21 +23,8 @@ class ExportResult:
     export_dir: Path
     zip_path: Path
     manifest_path: Path
-    provenance_path: Path
     report_path: Path
     report_md_path: Path
-
-
-def _sha256_of_file(p: Path) -> str:
-    h = hashlib.sha256()
-    with p.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _now_utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _write_json(path: Path, obj: dict) -> Path:
@@ -52,23 +40,23 @@ def run_preflight_and_write(
     files: Path,
     out_stem: Path,
     fairy_version: str = FAIRY_VERSION,
-) -> tuple[Path, Path, dict]:
+) -> tuple[Path, Path, dict[str, Any]]:
     """
-    Runs validator (attestation+findings), writes JSON to out_stem (no suffix),
-    writes Markdown to out_stem.md, returns (json_path, md_path, attestation_dict).
+    Runs validator, writes JSON and Markdown, returns (json_path, md_path, report_dict).
     """
     report = run_rulepack(
         rulepack_path=rulepack.resolve(),
         samples_path=samples.resolve(),
         files_path=files.resolve(),
         fairy_version=fairy_version,
+        params={},
     )
+
     # JSON
     json_path = out_stem
-    json_path.parent.mkdir(parents=True, exist_ok=True)
     _write_json(json_path, report)
 
-    # Markdown (reuse your CLI emitter)
+    # Markdown
     md_path = out_stem.with_suffix(".md")
     emit_preflight_markdown(
         md_path=md_path,
@@ -76,9 +64,8 @@ def run_preflight_and_write(
         resolved_codes=[],  # resolved diff is optional for export demo
         prior_codes=set(),  # pass empty set so emitter renders the block
     )
-    # Return attestation dict (canonical, already includes provenance/header fields)
-    att = report.get("attestation") or report.get("_legacy", {}).get("attestation") or {}
-    return json_path, md_path, att
+
+    return json_path, md_path, report
 
 
 def _shim_build_bundle(
@@ -87,80 +74,80 @@ def _shim_build_bundle(
     samples: Path,
     files: Path,
     report_json: Path,
-    attestation: dict,
-) -> tuple[Path, Path, Path]:
+    report_md: Path,
+    report: dict[str, Any],
+) -> tuple[Path, Path]:
     """
     Temporary shim until fairy_core.export.build_bundle is available.
     - Writes manifest.json (sha256, size, relpath) for key files
-    - Writes provenance.json (who/when/version/inputs)
     - Creates bundle.zip containing the export_dir contents
     """
-    manifest_items = []
 
-    def _add(p: Path):
-        rel = p.relative_to(export_dir).as_posix()
-        manifest_items.append(
+    manifest_path = export_dir / "manifest.json"
+    files_list: list[dict[str, object]] = []
+
+    def _add(rel_name: str, abs_path: Path) -> None:
+        files_list.append(
             {
-                "path": rel,
-                "sha256": _sha256_of_file(p),
-                "bytes": p.stat().st_size,
+                "path": rel_name,
+                "sha256": sha256_file(abs_path, newline_stable=True),
+                "bytes": abs_path.stat().st_size,
+                # role inferred
             }
         )
 
-    # Write manifest.json
-    manifest_path = export_dir / "manifest.json"
-    # Include canonical files present in export_dir
-    for candidate in ["samples.tsv", "files.tsv", "report", "report.md"]:
-        pc = export_dir / candidate
-        if pc.exists():
-            _add(pc)
-    _write_json(manifest_path, manifest_items)
+    # Canonical artifacts in the bundle
+    if samples.exists():
+        _add(samples.name, samples)
+    if files.exists():
+        _add(files.name, files)
+    if report_json.exists():
+        _add(report_json.name, report_json)
+    if report_md.exists():
+        _add(report_md.name, report_md)
 
-    # Write provenance.json
-    prov = {
-        "created_at_utc": _now_utc_iso(),
-        # old key for compatibility
-        "fairy_version": (
-            attestation.get("fairy_core_version")
-            or attestation.get("fairy_version")
-            or FAIRY_VERSION
-        ),
-        # NEW canonical fields
-        "fairy_core_version": (
-            attestation.get("fairy_core_version")
-            or attestation.get("core_version")
-            or FAIRY_VERSION
-        ),
-        "rulepack_name": (
-            attestation.get("rulepack_name") or (attestation.get("rulepack") or {}).get("id")
-        ),
-        "rulepack_version": (
-            attestation.get("rulepack_version")
-            or (attestation.get("rulepack") or {}).get("version")
-        ),
-        "rulepack_source_path": (
-            attestation.get("rulepack_source_path")
-            or (attestation.get("rulepack") or {}).get("path")
-        ),
+    # Rulepack info from report V1
+    rulepack_meta = (report.get("metadata") or {}).get("rulepack") or {}
+    rp_id = rulepack_meta.get("id") or "UNKNOWN_RULEPACK"
+    rp_version = rulepack_meta.get("version") or "0.0.0"
+    rp_sha256 = rulepack_meta.get("sha256")
+
+    fairy_core_version = (report.get("engine") or {}).get("fairy_core_version") or FAIRY_VERSION
+
+    manifest = build_manifest_v1(
+        dataset_id=report["dataset_id"],
+        created_at_utc=report["generated_at"],
+        fairy_version=fairy_core_version,
+        rulepack_id=rp_id,
+        rulepack_version=rp_version,
+        source_report=report_json.name,
+        files=files_list,
+    )
+
+    # Optional: include rulepack sha256 if present
+    if rp_sha256:
+        manifest["rulepack"]["sha256"] = rp_sha256
+
+    # Optional: provenance block that replaces provenance.json
+    manifest["provenance"] = {
+        "fairy_core_version": fairy_core_version,
         "inputs": [
             {
                 "name": "samples",
                 "path": samples.name,
-                "sha256": _sha256_of_file(samples),
+                "sha256": sha256_file(samples, newline_stable=True),
                 "bytes": samples.stat().st_size,
             },
             {
                 "name": "files",
                 "path": files.name,
-                "sha256": _sha256_of_file(files),
+                "sha256": sha256_file(files, newline_stable=True),
                 "bytes": files.stat().st_size,
             },
         ],
-        "environment": {"cwd": os.getcwd()},
-        "report_json": report_json.name,
     }
-    provenance_path = export_dir / "provenance.json"
-    _write_json(provenance_path, prov)
+
+    _write_json(manifest_path, manifest)
 
     # Create bundle.zip
     # Make a temp folder name to avoid zipping the zip itself on re-runs
@@ -168,7 +155,10 @@ def _shim_build_bundle(
     zip_path_str = shutil.make_archive(str(zip_base), "zip", root_dir=export_dir)
     zip_path = Path(zip_path_str)
 
-    return zip_path, manifest_path, provenance_path
+    return (
+        zip_path,
+        manifest_path,
+    )
 
 
 def export_submission(
@@ -184,45 +174,47 @@ def export_submission(
       - creates timestamped export dir
       - runs preflight and writes report + report.md
       - copies samples/files into export dir (so the ZIP is self-contained)
-      - builds manifest/provenance and zip (shim)
+      - builds manifest(inclu provenance block) and zip
     """
     ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
     export_dir = (project_dir / "exports" / ts).resolve()
     export_dir.mkdir(parents=True, exist_ok=True)
 
     # 1) run preflight into export_dir/report (+ .md)
-    report_path, report_md_path, att = run_preflight_and_write(
+    report_path, report_md_path, report = run_preflight_and_write(
         rulepack=rulepack,
         samples=samples,
         files=files,
-        out_stem=export_dir / "report",
+        out_stem=export_dir / "report.json",
         fairy_version=fairy_version,
     )
-    # Check submission_ready from returned attestation dict
-    if not att.get("submission_ready", False):
-        raise RuntimeError("Export requested while submission_ready == False")
+    # submission_ready derived from v1 summary
+    by_level = (report.get("summary") or {}).get("by_level") or {}
+    submission_ready = (by_level.get("fail", 0) or 0) == 0
+    if not submission_ready:
+        raise RuntimeError(
+            "Export requested while submission_ready == False (fail findings present)"
+        )
 
-    # 2) ensure inputs are copied next to the report so bundle is complete
-    # (If you prefer symlinks, adjust accordingly)
+    # 2) copy inputs next to report so bundle is complete
     dst_samples = export_dir / "samples.tsv"
     dst_files = export_dir / "files.tsv"
     shutil.copy2(samples, dst_samples)
     shutil.copy2(files, dst_files)
 
-    # 3) build shim bundle: manifest.json, provenance.json, bundle.zip
-    zip_path, manifest_path, provenance_path = _shim_build_bundle(
+    zip_path, manifest_path = _shim_build_bundle(
         export_dir=export_dir,
         samples=dst_samples,
         files=dst_files,
         report_json=report_path,
-        attestation=att,
+        report_md=report_md_path,
+        report=report,
     )
 
     return ExportResult(
         export_dir=export_dir,
         zip_path=zip_path,
         manifest_path=manifest_path,
-        provenance_path=provenance_path,
         report_path=report_path,
         report_md_path=report_md_path,
     )

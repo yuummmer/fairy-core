@@ -76,9 +76,14 @@ def main(args) -> int:
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
     )
     # Extract data from new v1 structure
-    metadata = report["metadata"]
-    summary = report["summary"]
-    results = report["results"]
+    metadata = report.get("metadata") or {}
+    summary = report.get("summary") or {}
+    results = report.get("results") or []
+
+    # Rulepack meta
+    rulepack_meta = metadata.get("rulepack") or {}
+    rp_id = rulepack_meta.get("id") or "UNKNOWN_RULEPACK"
+    rp_version = rulepack_meta.get("version") or "0.0.0"
 
     # For backward compatibility during migration, also check _legacy
     legacy_att = report.get("_legacy", {}).get("attestation")
@@ -97,10 +102,6 @@ def main(args) -> int:
     # --- Manifest v1: always emit manifest.json in output dir ---
     manifest_path = args.out.parent / "manifest.json"
 
-    rulepack_meta = report.get("metadata", {}).get("rulepack", {})
-    rp_id = rulepack_meta.get("id") or "UNKNOWN_RULEPACK"
-    rp_version = rulepack_meta.get("version") or "0.0.0"
-
     files_list = [
         {
             "path": args.out.name,
@@ -110,7 +111,6 @@ def main(args) -> int:
         {
             "path": md_path.name,
             "sha256": sha256_file(md_path, newline_stable=True),
-            "role": "report",
             # role inferred
         },
     ]
@@ -134,17 +134,12 @@ def main(args) -> int:
     print("")
     print("=== FAIRy Preflight ===")
 
-    # Extract rulepack info from metadata.rulepack
-    rulepack_meta = metadata.get("rulepack", {})
-    rulepack_id = rulepack_meta.get("id") or rulepack_meta.get("name") or "UNKNOWN_RULEPACK"
-    rulepack_version = rulepack_meta.get("version") or "0.0.0"
-
     # FAIRy version from legacy attestation if available, otherwise use default
     fairy_version = (
         legacy_att.get("fairy_version", args.fairy_version) if legacy_att else args.fairy_version
     )
 
-    print(f"Rulepack:         {rulepack_id}@{rulepack_version}")
+    print(f"Rulepack:         {rp_id}@{rp_version}")
     print(f"FAIRy version:    {fairy_version}")
     print(f"Generated at:     {report['generated_at']}")
 
