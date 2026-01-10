@@ -45,7 +45,6 @@ def test_preflight_emits_manifest_v1_and_links_to_report(tmp_path: Path) -> None
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     # --- Assert: schema-valid manifest ---
-    repo_root = Path(__file__).resolve().parents[1]
     schema_path = repo_root / "schemas" / "manifest_v1.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 
@@ -60,11 +59,18 @@ def test_preflight_emits_manifest_v1_and_links_to_report(tmp_path: Path) -> None
     assert manifest["source_report"] == out_path.name
     assert manifest["dataset_id"] == report["dataset_id"]
     assert manifest["created_at_utc"] == report["generated_at"]
-    assert manifest["fairy_version"] == report["engine"]["fairy_core_version"]
+
+    expected_fairy_version = (report.get("engine") or {}).get(
+        "fairy_core_version"
+    ) or args.fairy_version
+    assert manifest["fairy_version"] == expected_fairy_version
+
     assert manifest["rulepack"]["id"] == report["metadata"]["rulepack"]["id"]
     assert manifest["rulepack"]["version"] == report["metadata"]["rulepack"]["version"]
 
-    # --- Assert: emitted files list includes report artifacts with roles ---
+    # --- Assert: all file entries have roles + expected report roles exist ---
+    assert all("role" in f and f["role"] for f in manifest["files"])
+
     paths_to_roles = {f["path"]: f["role"] for f in manifest["files"]}
     assert paths_to_roles[out_path.name] == "report"
     assert paths_to_roles[md_path.name] == "report"
