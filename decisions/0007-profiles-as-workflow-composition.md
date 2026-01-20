@@ -24,11 +24,25 @@ Introduce **Profiles** as a thin orchestration layer that composes existing **Ru
 - **Rulepacks** remain the unit of reusable validation logic.
   - **Rulepacks must be runnable standalone** (no profile required).
 - **Profiles** define:
-  - which rulepacks to run (with pinned versions/refs)
+  - which rulepacks to run (with pinned versions/refs for domain profiles; flexible for generic)
   - expected inputs (filenames/aliases)
   - default parameters
   - output configuration (reports and optional bundle/packaging)
+  - stable out-dir layout (reports + handoff artifacts) required for future `--bundle bagit`
 - **Profiles must not contain validation logic** (only references + defaults).
+
+Profiles come in two types:
+
+1. **Domain profiles** (e.g., `geo`, `dwc`, `insdc`) — **Pinned recipes**
+   - Pin specific rulepack versions for reproducibility
+   - Provide stable, tested workflows for specific domains
+   - Users get consistent, repeatable results
+
+2. **Generic profile** — **Operator chassis**
+   - Flexible workflow that accepts user-provided rulepack(s) or uses defaults
+   - Acts as the universal operator mode for custom workflows
+   - Does not pin rulepack versions; runs whatever the user specifies
+   - Generic is a built-in profile shipped with fairy-core and serves as the base operator workflow
 
 Profiles do **not** change the rulepack format, and rulepacks remain registry-listed and independently versioned.
 
@@ -111,11 +125,45 @@ Profiles do **not** change the rulepack format, and rulepacks remain registry-li
 - Define a small set of "official" profiles and treat others as community/experimental
 - Profile format should include:
   - Profile metadata (id, version, description)
-  - Rulepack references (with version pinning)
+  - Rulepack references (with version pinning for domain profiles; optional/flexible for generic)
   - Input expectations (filenames/aliases/patterns)
   - Default parameters
   - Output configuration (report format, bundling options)
-- CLI should support `--profile <profile-id>` as an alternative to `--rulepack <rulepack-id>`
+
+### Profile Types
+
+**Domain profiles** (e.g., `geo`, `dwc`, `insdc`):
+- Pin specific rulepack versions for reproducibility and stability
+- Provide tested, repeatable workflows for specific submission standards
+- Example: `geo` profile pins `geo-bulk-seq@v0.1.0`
+
+**Generic profile**:
+- Acts as the universal operator chassis
+- Accepts user-provided rulepack(s) via `--rulepack` flag or uses sensible defaults
+- Does not pin rulepack versions; flexible for custom workflows
+- Example: `fairy preflight generic --rulepack path/to/custom.yaml ...`
+
+### CLI Design for Profile Selection
+
+**Subcommands are canonical**
+- `fairy preflight <profile-id> ...` — Preferred way to run profiles (e.g., `fairy preflight geo --samples ... --files ...`)
+- Provides clear discoverability and outcome-oriented workflows
+
+**`--profile` is an alias (optional / for scripting)**
+- `fairy preflight --profile <profile-id> ...` — Supported for scripting and flexibility
+
+**`--rulepack` is an escape hatch (dev / advanced use)**
+- `fairy preflight --rulepack <path> ...` — For development/testing and advanced use cases
+
+**Legacy compatibility**
+- Legacy GEO flags (e.g., `fairy preflight --samples ... --files ...` without profile/rulepack) temporarily supported
+- Internally redirects to `fairy preflight geo`, emits deprecation warning, and shows replacement command
+- Will be removed in a future release
+
+**`validate` command**
+- `fairy validate` remains unchanged — no profile subcommands
+- In future, we may allow `validate --profile` for parity, but `validate` remains rulepack-first
+
 - See Appendix A for initial placement options (non-normative)
 
 ## Non-goals
@@ -129,7 +177,9 @@ Profiles do **not** change the rulepack format, and rulepacks remain registry-li
 ## Notes
 
 - This ADR builds on ADR-0002 (rulepack/runner separation) and ADR-0004 (rulepack organization) by adding a workflow composition layer.
-- Profiles may be distributed with fairy-core, but have their own `profile.version` and pin rulepack versions explicitly. This allows stable workflow interfaces while rulepacks evolve independently.
+- **Domain profiles** (geo, dwc, insdc) pin rulepack versions explicitly for reproducibility. This allows stable workflow interfaces while rulepacks evolve independently.
+- **Generic profile** serves as the operator chassis and does not pin versions; it accepts user-provided rulepacks or uses defaults, making it flexible for custom workflows.
+- Profiles may be distributed with fairy-core, but have their own `profile.version`.
 - Consider a profiles registry similar to the rulepack registry for discoverability.
 - Future work may include profile templates or generators to help users create custom profiles.
 

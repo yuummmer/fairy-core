@@ -268,4 +268,3 @@ This makes it easy to reference the `dataset_id` without opening the manifest fi
 
 - [Preflight Report Schema](reporting.md) - Details about the preflight report JSON structure
 - [ADR-0003: Dataset bundle manifest](../decisions/0003-dataset-bundle-manifest.md) - Architecture decision record for the manifest design
-
