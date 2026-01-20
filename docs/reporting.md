@@ -34,7 +34,7 @@ The preflight report follows a stable v1.0.0 schema with the following top-level
 
 - **`schema_version`** (string, required): Schema version identifier, currently `"1.0.0"`
 - **`generated_at`** (string, required): ISO-8601 UTC timestamp with 'Z' suffix (e.g., `"2025-11-11T12:00:00Z"`)
-- **`dataset_id`** (string, required): Aggregate SHA-256 hash of all inputs in format `"sha256:<64-hex-chars>"`
+- **`dataset_id`** (string, required): Snapshot identity (SHA-256 hash of inputs + rulepack + params) in format `"sha256:<64-hex-chars>"`
 - **`metadata`** (object, required): Contains input and rulepack provenance
 - **`summary`** (object, required): Aggregated statistics
 - **`results`** (array, required): Rule-level validation results
@@ -75,7 +75,7 @@ Rulepack provenance:
   "sha256": "56187ff593c6a3fb23fda71de2707d52684cee3e972acf474c3aec985e2317ee",
   "id": "GEO-SEQ-BULK",
   "version": "0.1.0",
-  "params_sha256": "..."  // optional, SHA-256 of canonical JSON params
+  "params_sha256": "..."  // optional, configuration identity (SHA-256 of canonical JSON params)
 }
 ```
 
@@ -222,6 +222,10 @@ report = json.loads(Path("report.json").read_text())
 
 jsonschema.validate(instance=report, schema=schema)
 ```
+
+## Bundle Manifest
+
+FAIRy also generates a `manifest.json` file alongside the preflight report. The manifest provides structured metadata about the bundle, including the `dataset_id`, file inventory, and provenance information. See the [Bundle Manifest documentation](manifest.md) for complete details.
 
 ## Markdown Reports
 

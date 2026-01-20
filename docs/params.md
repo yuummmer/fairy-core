@@ -115,7 +115,7 @@ Parameters are loaded from the YAML file and stored in the validation context:
 - **Type**: `dict[str, Any]`
 - **Default**: Empty dictionary `{}` if no `--param-file` is provided
 
-The parameters are also included in the report metadata as `params_sha256` (a SHA-256 hash of the canonical JSON serialization) to track when the same rulepack is run with different parameters.
+The parameters are also included in the report metadata as `params_sha256` (configuration identity: a SHA-256 hash of the canonical JSON serialization) to track when the same rulepack is run with different parameters.
 
 ## See also
 

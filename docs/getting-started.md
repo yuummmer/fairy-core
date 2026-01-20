@@ -28,19 +28,14 @@ When FAIRy finishes, it produces validation reports:
 - **`preflight_report.json`** — Full validation results with detailed findings
 - **`preflight_report.md`** — Human-readable summary report
 
-<!-- ============================================ -->
-<!-- MANIFEST V1 SPOTLIGHT - TOGGLE ON/OFF       -->
-<!-- When Manifest v1 ships, uncomment below:   -->
-<!-- ============================================ -->
-<!--
-**Coming soon / when using bundle:** FAIRy will produce an attested bundle that includes:
+**Bundle manifest:** FAIRy produces an attested bundle that includes:
 
 - **`preflight_report.json`** — Full validation results with detailed findings
 - **`manifest.json`** — A structured manifest containing:
   - `dataset_id`: A content-based fingerprint for this exact dataset (format: `"sha256:<64-hex-chars>"`)
   - `created_at_utc`: When the bundle was created
   - `fairy_version`: The version of FAIRy that created this bundle
-  - A list of files in the bundle
+  - A list of files in the bundle with their roles and integrity hashes
 
 You don't need to memorize the hash—it's mainly for:
 - Skipping repeated checks on identical data
@@ -49,8 +44,7 @@ You don't need to memorize the hash—it's mainly for:
 
 Think of `dataset_id` like a barcode for "this exact dataset version."
 
-**Manifest v1:** In Manifest v1, the provenance section becomes a stable contract via `manifest.json`, which records `dataset_id`, rulepack version, `created_at`, source report, and a typed list of files with roles + hashes.
--->
+For complete details about manifest fields and where to find the manifest file, see the [Bundle Manifest documentation](manifest.md).
 
 ### What you'll learn in this guide
 
