@@ -8,10 +8,11 @@ import json
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
-from ...cli.output_md import emit_preflight_markdown  # reuse your MD emitter
+from ...cli.output_md import emit_preflight_markdown
 from ...cli.run import FAIRY_VERSION
 from ..services.manifest import build_manifest_v1
 from ..services.provenance import sha256_file
@@ -25,6 +26,11 @@ class ExportResult:
     manifest_path: Path
     report_path: Path
     report_md_path: Path
+
+
+def _mint_attestation_id(dataset_id: str) -> str:
+    h = sha256(dataset_id.encode("utf-8")).hexdigest()
+    return f"fairy:attest:{h}"
 
 
 def _write_json(path: Path, obj: dict) -> Path:
@@ -127,6 +133,17 @@ def _shim_build_bundle(
     # Optional: include rulepack sha256 if present
     if rp_sha256:
         manifest["rulepack"]["sha256"] = rp_sha256
+
+    by_level = (report.get("summary") or {}).get("by_level") or {}
+    submission_ready = (by_level.get("fail", 0) or 0) == 0
+
+    manifest["submission_ready"] = submission_ready
+
+    if submission_ready:
+        manifest["attestation_id"] = _mint_attestation_id(manifest["dataset_id"])
+    else:
+        # ensure no stamp is emitted on FAIL
+        manifest.pop("attestation_id", None)
 
     # Optional: provenance block that replaces provenance.json
     manifest["provenance"] = {
