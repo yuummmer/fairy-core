@@ -142,6 +142,7 @@ def main(args) -> int:
     print(f"Rulepack:         {rp_id}@{rp_version}")
     print(f"FAIRy version:    {fairy_version}")
     print(f"Generated at:     {report['generated_at']}")
+    print(f"Dataset ID:       {report['dataset_id']}")
 
     # Extract fail/warn codes from results
     fail_codes = sorted({r["rule"] for r in results if r["level"] == "fail"})
