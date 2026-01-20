@@ -197,6 +197,9 @@ def export_submission(
     export_dir = (project_dir / "exports" / ts).resolve()
     export_dir.mkdir(parents=True, exist_ok=True)
 
+    # TODO(#122 / profiles): align export artifact filenames with preflight --out-dir contract
+    # (preflight_report.json / preflight_report.md) so packagers can consume either output directory
+
     # 1) run preflight into export_dir/report (+ .md)
     report_path, report_md_path, report = run_preflight_and_write(
         rulepack=rulepack,

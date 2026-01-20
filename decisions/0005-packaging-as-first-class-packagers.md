@@ -12,6 +12,14 @@ Clarifications to the original proposal:
 - Bundling remains invoked from preflight (unchanged).
 - This ADR accepts the architecture decision (packagers/bundles as first-class) while keeping BagIt implementation details as "next steps" since implementation has not yet started.
 
+## Update (2026-01-20)
+
+Preflight output directory requirements:
+- Preflight MUST emit an output directory containing `manifest.json` and `report.json`.
+- `manifest.json` follows Manifest v1 (keys: `schema_version`, `dataset_id`, `created_at_utc`, `fairy_version`, `hash_algorithm`, `rulepack`, `source_report`, `files`; optional: `attestation_id`, `provenance`).
+- `report.json` is the evidence report and MUST include `metadata.inputs` attestation mapping (`path` + `sha256` + `rows`/`bytes` where applicable).
+- Future bundling consumes this output directory without additional inference.
+
 ## Context
 
 ### How FAIRy operates today
@@ -43,10 +51,11 @@ Introduce a new concept in FAIRy-core: **Packagers (aka Exporters)**.
 - **Internal term**: Packager interface
 
 - **Rulepacks** define validation rules and may optionally *recommend or require* one or more packagers.
-- **Packagers** are responsible for producing a handoff-ready bundle from:
-  - user inputs (datasets/files),
-  - FAIRy-generated outputs (reports/manifest/etc),
-  - packager configuration (algorithm/options).
+- **Packagers** are responsible for producing a handoff-ready bundle from the preflight output directory:
+  - Preflight output directory (containing `manifest.json` and `report.json`)
+  - Packager configuration (algorithm/options)
+
+Packagers consume the preflight output directory without additional inference; `manifest.json` and `report.json` provide all necessary metadata.
 
 **Workflow integration:**
 - `fairy preflight` remains the primary user entrypoint (the human-friendly default, universal operator mode).
@@ -95,9 +104,12 @@ This separation provides several key benefits:
 
 ### Packager interface (conceptual)
 A packager:
-- receives `inputs`, `fairy_outputs`, and `config`
-- writes to an output directory (or archive)
+- consumes the preflight output directory (containing `manifest.json` and `report.json`)
+- reads `manifest.json` and `report.json` to determine bundle contents
+- writes to a bundle output directory (or archive)
 - returns a structured summary (paths written, algorithm used, validation status)
+
+Packagers do not need to re-infer file metadata or recompute checksums; they consume the preflight output directory directly.
 
 ### BagIt structure convention
 
@@ -110,10 +122,15 @@ This separation keeps user data distinct from FAIRy-generated metadata and align
 
 ### Directory layout convention
 
-Output directory structure (provisional):
+Output directory structure:
 
-- **Preflight outputs**: `<out>/` (report.json, report.md, manifest, etc.)
+- **Preflight outputs**: `<out>/` MUST contain:
+  - `manifest.json` (Manifest v1 format)
+  - `report.json` (evidence report with `metadata.inputs` attestation mapping)
+  - `report.md` (human-readable markdown report, optional)
 - **Bundle outputs**: `<out>/bundles/<name>/` (e.g., `<out>/bundles/bag/` for BagIt)
+
+Future bundling consumes the preflight output directory (`<out>/`) without additional inference. The packager reads `manifest.json` and `report.json` to construct the bundle.
 
 Alternative considered: `<out>/<name>.bag/` (flatter structure). The `bundles/` subdirectory approach groups all bundles together and allows multiple bundles per preflight run if needed in the future.
 
