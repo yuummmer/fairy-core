@@ -1,6 +1,6 @@
 # ADR-0003: Dataset bundle manifest with hash-based `dataset_id`
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2025-11-17
 **Deciders**: Project maintainers
 **Tags**: architecture, storage, validation, export
