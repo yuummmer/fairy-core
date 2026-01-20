@@ -373,7 +373,11 @@ def test_dataset_id_is_computed_correctly(
     rulepack_path: Path, samples_path: Path, files_path: Path
 ):
     """Test that dataset_id is computed correctly from all inputs."""
-    from fairy.core.services.provenance import compute_dataset_id
+    from fairy.core.services.provenance import (
+        CANON_VERSION_V1,
+        compute_dataset_id,
+        compute_params_sha256,
+    )
 
     report = run_rulepack(
         rulepack_path=rulepack_path,
@@ -385,20 +389,27 @@ def test_dataset_id_is_computed_correctly(
     assert dataset_id.startswith("sha256:"), "dataset_id must start with 'sha256:'"
     assert len(dataset_id) == 71, "dataset_id must be 'sha256:' (7) + 64 hex chars = 71"
 
-    # Verify it matches manual computation
     metadata = report["metadata"]
     inputs = metadata["inputs"]
+    rp = metadata["rulepack"]
 
-    inputs_meta_for_computation = {
-        name: {
-            "sha256": meta["sha256"],
-            "n_rows": meta["n_rows"],
-            "n_cols": meta["n_cols"],
-        }
-        for name, meta in inputs.items()
-    }
+    # v1 identity uses only input sha256s
+    inputs_sha256 = {name: meta["sha256"] for name, meta in inputs.items()}
 
-    expected_dataset_id = compute_dataset_id(inputs_meta_for_computation)
+    # params are currently passed as {} in tests/CLI; stil must be hashed deterministitcally
+    params_sha256 = compute_params_sha256({})
+
+    expected_dataset_id = compute_dataset_id(
+        inputs_sha256=inputs_sha256,
+        rulepack={
+            "id": rp["id"],
+            "version": rp["version"],
+            "sha256": rp["sha256"],
+        },
+        params_sha256=params_sha256,
+        canon_version=CANON_VERSION_V1,
+    )
+
     assert dataset_id == expected_dataset_id, "dataset_id should match manual computation"
 
 

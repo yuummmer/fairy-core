@@ -17,9 +17,9 @@
 
 from __future__ import annotations
 
-import json
+import os
+import warnings
 from dataclasses import asdict
-from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -38,10 +38,16 @@ from ..validation_api import (
     now_utc_iso,
 )
 from ..validation_api import (
-    validate_csv as _core_validate_csv,  # <-- NEW: import the canonical validate_csv
+    validate_csv as _core_validate_csv,
 )
 from ..validators import rna  # to call check_* helpers
-from .provenance import compute_dataset_id, sha256_file, summarize_tabular
+from .provenance import (
+    CANON_VERSION_V1,
+    compute_dataset_id,
+    compute_params_sha256,
+    sha256_file,
+    summarize_tabular,
+)
 from .transform import transform_findings_to_results
 
 
@@ -247,14 +253,7 @@ def run_rulepack(
         "warn_count": warn_count,
     }
 
-    # Compute params_sha256 if params provided
-    params_sha256: str | None = None
-    if params:
-        # Canonical JSON serialization: sorted keys, no whitespace
-        canonical_params_json = json.dumps(params, sort_keys=True, separators=(",", ":"))
-        params_bytes = canonical_params_json.encode("utf-8")
-        params_hash_obj = sha256(params_bytes)
-        params_sha256 = params_hash_obj.hexdigest()
+    params_sha256 = compute_params_sha256(params)
 
     rulepack_metadata = RulepackMetadata(
         path=rp_source_path,
@@ -282,20 +281,17 @@ def run_rulepack(
     # Filter out None values to match schema (optional fields should be omitted, not null)
     rulepack_metadata_dict = {k: v for k, v in asdict(rulepack_metadata).items() if v is not None}
 
-    # Compute dataset_id from all inputs
-    inputs_meta_for_dataset_id = {
-        name: {
-            "sha256": meta.sha256,
-            "n_rows": meta.n_rows,
-            "n_cols": meta.n_cols,
-        }
-        for name, meta in inputs_metadata.items()
-    }
-    dataset_id = compute_dataset_id(inputs_meta_for_dataset_id)
+    inputs_sha256 = {name: meta.sha256 for name, meta in inputs_metadata.items()}
+
+    dataset_id = compute_dataset_id(
+        inputs_sha256=inputs_sha256,
+        rulepack={"id": rp_id, "version": rp_version, "sha256": rp_sha256},
+        params_sha256=params_sha256,
+        canon_version=CANON_VERSION_V1,
+    )
 
     # Format timestamp to ISO-8601 UTC with Z suffix
     # Allow override via environment variable for deterministic golden tests
-    import os
 
     fixed_timestamp = os.environ.get("FAIRY_FIXED_TIMESTAMP")
     if fixed_timestamp:
@@ -313,9 +309,15 @@ def run_rulepack(
         "schema_version": "1.0.0",
         "generated_at": timestamp,
         "dataset_id": dataset_id,
+        "dataset_id_method": {
+            "algorithm": "sha256",
+            "canon_version": CANON_VERSION_V1,
+            "includes": ["inputs.sha256", "rulepack.sha256", "params.sha256"],
+        },
         "metadata": {
             "inputs": inputs_metadata_dict,
             "rulepack": rulepack_metadata_dict,
+            "params": {"sha256": params_sha256},
         },
         "summary": {
             "by_level": by_level,
@@ -337,7 +339,6 @@ def run_rulepack(
     }
 
     # Deprecation warning for _legacy field
-    import warnings
 
     warnings.warn(
         "The '_legacy' field in preflight reports is deprecated and will be removed in v1.2.0. "
