@@ -10,9 +10,30 @@ tabular file metadata (path, sha256, dimensions, headers).
 
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from hashlib import sha256
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
+
+CANON_VERSION_V1 = "fairy-canon@1"
+
+
+class RulepackIdentity(TypedDict):
+    id: str
+    version: str
+    sha256: str
+
+
+def _canonical_json(obj: Any) -> str:
+    # Stable JSON for hashing: sorted keys, no whitespace
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def compute_params_sha256(params: dict | None) -> str:
+    # Always hash canonical empty object {} when missing
+    canon = _canonical_json(params or {})
+    return sha256(canon.encode("utf-8")).hexdigest()
 
 
 def sha256_file(p: Path, *, newline_stable: bool = False) -> str:
@@ -107,85 +128,32 @@ def summarize_tabular(p: Path) -> dict[str, Any]:
     }
 
 
-def compute_dataset_id(inputs_meta: dict[str, dict[str, Any]]) -> str:
+def compute_dataset_id(
+    *,
+    inputs_sha256: Mapping[str, str],
+    rulepack: RulepackIdentity,
+    params_sha256: str,
+    canon_version: str = CANON_VERSION_V1,
+) -> str:
     """
-    Compute aggregate SHA-256 hash from all inputs for dataset identification.
-
-    Creates a canonical representation of all inputs by:
-    1. Sorting input names alphabetically
-    2. For each input, building a canonical line: {name}\t{sha256}\t{n_rows}\t{n_cols}
-    3. Joining lines with newline
-    4. Computing SHA-256 hash of the resulting string
-    5. Returning format: "sha256:<hex>"
-
-    Args:
-        inputs_meta: Dictionary mapping input name → metadata dict with keys:
-            - sha256: str (64 hex chars) - required, but will be computed from path if missing
-            - path: str - optional, used to compute sha256 if sha256 is missing
-            - n_rows: int - required
-            - n_cols: int - required
-
-    Returns:
-        String in format "sha256:<hex>" (64 hex chars)
-
-    Raises:
-        ValueError: If any input lacks required metadata fields:
-            - sha256 (and no path available to compute it)
-            - n_rows or n_cols
-        FileNotFoundError: If path is provided but file doesn't exist
+    Versioned dataset identity.
+    Depends ONLY on:
+      - input file sha256s
+      - rulepack id/version/sha256
+      - params sha256 (hash of {} if none)
+      - canon_version
     """
-    lines: list[str] = []
-
-    # Sort input names alphabetically for deterministic ordering
-    sorted_names = sorted(inputs_meta.keys())
-
-    for name in sorted_names:
-        meta = inputs_meta[name]
-
-        # Get required fields
-        sha256_val = meta.get("sha256")
-        n_rows = meta.get("n_rows")
-        n_cols = meta.get("n_cols")
-
-        # If sha256 is missing, try to compute it from path
-        if sha256_val is None:
-            path_str = meta.get("path")
-            if path_str:
-                try:
-                    path_obj = Path(path_str)
-                    if not path_obj.exists():
-                        raise FileNotFoundError(
-                            f"Input '{name}': path '{path_str}' does not exist. "
-                            "Cannot compute sha256."
-                        )
-                    sha256_val = sha256_file(path_obj, newline_stable=True)
-                except Exception as e:
-                    raise ValueError(
-                        f"Input '{name}' lacks sha256 and cannot compute from path "
-                        f"'{path_str}': {e}"
-                    ) from e
-            else:
-                raise ValueError(
-                    f"Input '{name}' lacks sha256 and no path available. "
-                    "Compute file hash during load or omit dataset_id."
-                )
-
-        # Validate other required fields
-        if n_rows is None or n_cols is None:
-            raise ValueError(
-                f"Input '{name}' lacks n_rows or n_cols. Required for dataset_id computation."
-            )
-
-        # Build canonical line: {name}\t{sha256}\t{n_rows}\t{n_cols}
-        line = f"{name}\t{sha256_val}\t{n_rows}\t{n_cols}"
-        lines.append(line)
-
-    # Join lines with newline and compute SHA-256 hash
-    canonical_string = "\n".join(lines)
-    # Encode to UTF-8 bytes for hashing
-    canonical_bytes = canonical_string.encode("utf-8")
-    hash_obj = sha256(canonical_bytes)
-    hex_digest = hash_obj.hexdigest()
-
-    # Return format: "sha256:<hex>"
-    return f"sha256:{hex_digest}"
+    payload = {
+        "canon_version": canon_version,
+        "algorithm": "sha256",
+        "includes": ["inputs.sha256", "rulepack.sha256", "params.sha256"],
+        "inputs": {k: {"sha256": v} for k, v in sorted(inputs_sha256.items())},
+        "rulepack": {
+            "id": rulepack["id"],
+            "version": rulepack["version"],
+            "sha256": rulepack["sha256"],
+        },
+        "params": {"sha256": params_sha256},
+    }
+    h = sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+    return f"sha256:{h}"
