@@ -54,10 +54,12 @@ def test_preflight_main_emits_files(tmp_path, monkeypatch):
         },
     }
 
-    def fake_run_rulepack(**kwargs):
+    def fake_run_profile(
+        profile_id: str, *, rulepack: Path, inputs: dict, fairy_version: str, params=None
+    ):
         return fake
 
-    monkeypatch.setattr("fairy.cli.cmd_preflight.run_rulepack", fake_run_rulepack)
+    monkeypatch.setattr("fairy.cli.cmd_preflight.run_profile", fake_run_profile)
     out_json = tmp_path / "report.json"
     rc = cmd_preflight.main(DummyArgs(out_json))
     assert rc == 0

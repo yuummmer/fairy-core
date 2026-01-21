@@ -35,7 +35,11 @@ def test_preflight_main_emits_out_dir_contract(tmp_path, monkeypatch):
         "_legacy": {"attestation": {"fairy_version": "0.1.0"}},
     }
 
-    def fake_run_rulepack(**kwargs):
+    def fake_run_profile(
+        profile_id: str, *, rulepack: Path, inputs: dict, fairy_version: str, params=None
+    ):
+        assert profile_id == "geo"  # optional
+        assert "samples" in inputs and "files" in inputs
         return fake_report
 
     def fake_sha256_file(path: Path, newline_stable: bool = True) -> str:
@@ -45,7 +49,7 @@ def test_preflight_main_emits_out_dir_contract(tmp_path, monkeypatch):
         md_path.parent.mkdir(parents=True, exist_ok=True)
         md_path.write_text("# md", encoding="utf-8")
 
-    monkeypatch.setattr("fairy.cli.cmd_preflight.run_rulepack", fake_run_rulepack)
+    monkeypatch.setattr("fairy.cli.cmd_preflight.run_profile", fake_run_profile)
     monkeypatch.setattr("fairy.cli.cmd_preflight.sha256_file", fake_sha256_file)
     monkeypatch.setattr("fairy.cli.cmd_preflight.emit_preflight_markdown", fake_emit_md)
 
