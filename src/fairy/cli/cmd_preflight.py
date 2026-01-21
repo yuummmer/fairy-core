@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 from ..core.services.manifest import build_manifest_v1
+from ..core.services.preflight_profiles import run_profile
 from ..core.services.provenance import sha256_file
-from ..core.services.validator import run_rulepack
 from .common import ParamsFileError, load_params_file
 from .output_md import emit_preflight_markdown
 
@@ -131,10 +131,10 @@ def main(args) -> int:
         print(str(e))
         return 2
 
-    report = run_rulepack(
-        rulepack_path=args.rulepack,
-        samples_path=args.samples,
-        files_path=args.files,
+    report = run_profile(
+        "geo",
+        rulepack=args.rulepack,
+        inputs={"samples": args.samples, "files": args.files},
         fairy_version=args.fairy_version,
         params=params,
     )
