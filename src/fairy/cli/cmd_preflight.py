@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -19,9 +20,28 @@ except Exception:
 def add_subparser(sub):
     pf = sub.add_parser(
         "preflight",
-        help="Run FAIRy rulepack on GEO-style TSVs and emit attestation + findings.",
-        description=("Pre-submission check for GEO bulk RNA-seq."),
+        help="Run FAIRy preflight workflow (profile-based operator mode).",
+        description=(
+            "FAIRy preflight (operator mode). "
+            "Run a named preflight profile to produce handoff-ready artifacts."
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=(
+            "Profiles:\n"
+            "  geo     GEO-style samples/files TSV preflight\n\n"
+            "Legacy:\n"
+            "  fairy preflight --samples ... --files ...  (defaults to geo; will be deprecated)\n"
+        ),
     )
+
+    # optional profile name
+    pf.add_argument(
+        "profile",
+        nargs="?",
+        choices=["geo"],
+        help="Preflight profile to run (e.g., geo).",
+    )
+
     pf.add_argument("--rulepack", type=Path, required=True)
     pf.add_argument("--samples", type=Path, required=True)
     pf.add_argument("--files", type=Path, required=True)
@@ -124,6 +144,19 @@ def main(args) -> int:
     # tolerate missing attributes from test dummy args
     param_file = getattr(args, "param_file", None)
 
+    profile = getattr(args, "profile", None)
+    is_legacy = profile is None
+
+    profile_id = "geo" if is_legacy else profile
+
+    if is_legacy:
+        print("ℹ️  This invocation uses the GEO preflight profile.")
+        print(
+            "    Prefer: fairy preflight geo --rulepack ... --samples ... --files ..."
+            "--out-dir <DIR>"
+        )
+        print("")
+
     # load params file if provided
     try:
         params = load_params_file(str(param_file) if param_file else None)
@@ -132,7 +165,7 @@ def main(args) -> int:
         return 2
 
     report = run_profile(
-        "geo",
+        profile_id,
         rulepack=args.rulepack,
         inputs={"samples": args.samples, "files": args.files},
         fairy_version=args.fairy_version,
