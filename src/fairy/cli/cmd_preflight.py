@@ -25,7 +25,18 @@ def add_subparser(sub):
     pf.add_argument("--rulepack", type=Path, required=True)
     pf.add_argument("--samples", type=Path, required=True)
     pf.add_argument("--files", type=Path, required=True)
-    pf.add_argument("--out", type=Path, required=True)
+
+    out_group = pf.add_mutually_exclusive_group(required=True)
+    out_group.add_argument(
+        "--out", type=Path, help="(legacy) Path to write the preflight JSON report."
+    )
+    out_group.add_argument(
+        "--out-dir",
+        dest="out_dir",
+        type=Path,
+        help="Output directory for handoff-ready artifacts (report, manifest, markdown, etc.).",
+    )
+
     pf.add_argument("--fairy-version", default=FAIRY_VERSION)
     pf.add_argument(
         "--param-file",
@@ -52,6 +63,63 @@ def _save_last_codes(cache_path: Path, codes: set[str]) -> None:
     cache_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _resolve_output_paths(args) -> tuple[Path, Path, Path, Path, Path]:
+    """
+    Returns (report_json_path, report_md_path, manifest_path, cache_path, inputs_manifest_path).
+    - Legacy mode: args.out is JSON file path.
+    - Out-dir mode: args.out_dir is a directory; fixed filenames are used.
+    """
+    out_dir = getattr(args, "out_dir", None)
+    if out_dir:
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        report_path = out_dir / "preflight_report.json"
+        md_path = out_dir / "preflight_report.md"
+        manifest_path = out_dir / "manifest.json"
+        cache_path = out_dir / ".fairy_last_run.json"
+        inputs_manifest_path = out_dir / "artifacts" / "inputs_manifest.json"
+        return report_path, md_path, manifest_path, cache_path, inputs_manifest_path
+
+    # legacy: args.out is a file path
+    report_path = Path(args.out)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path = report_path.with_suffix(".md")
+    manifest_path = report_path.parent / "manifest.json"
+    cache_path = report_path.parent / ".fairy_last_run.json"
+    inputs_manifest_path = report_path.parent / "artifacts" / "inputs_manifest.json"
+    return report_path, md_path, manifest_path, cache_path, inputs_manifest_path
+
+
+def _emit_inputs_manifest(path: Path, report: dict) -> None:
+    """
+    Emits minimal inputs manifest derived from report ['metadata']['inputs']g,
+    """
+    md = report.get("metadata") or {}
+    inputs = md.get("inputs") or {}
+    samples = inputs.get("samples") or {}
+    files_info = inputs.get("files") or {}
+
+    payload = {
+        "schema_version": "inputs-manifest/v0",
+        "inputs": [
+            {
+                "name": "samples",
+                "path": samples.get("path"),
+                "sha256": samples.get("sha256"),
+            },
+            {
+                "name": "files",
+                "path": files_info.get("path"),
+                "sha256": files_info.get("sha256"),
+            },
+        ],
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
+    )
+
+
 def main(args) -> int:
     # tolerate missing attributes from test dummy args
     param_file = getattr(args, "param_file", None)
@@ -70,11 +138,15 @@ def main(args) -> int:
         fairy_version=args.fairy_version,
         params=params,
     )
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    # Use sort_keys=True for deterministic JSON output
-    args.out.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8"
+    report_path, md_path, manifest_path, cache_path, inputs_manifest_path = _resolve_output_paths(
+        args
     )
+
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
     # Extract data from new v1 structure
     metadata = report.get("metadata") or {}
     summary = report.get("summary") or {}
@@ -88,29 +160,31 @@ def main(args) -> int:
     # For backward compatibility during migration, also check _legacy
     legacy_att = report.get("_legacy", {}).get("attestation")
 
-    cache_path = args.out.parent / ".fairy_last_run.json"
     # Extract rule codes from results (rule field)
     curr_codes = {r["rule"] for r in results}
     prior_codes = _load_last_codes(cache_path)
     resolved_codes = sorted((prior_codes or set()) - curr_codes) if prior_codes else []
     _save_last_codes(cache_path, curr_codes)
 
-    md_path = args.out.with_suffix(".md")
     # Pass new structure to markdown emitter (it will handle the migration)
     emit_preflight_markdown(md_path, report, resolved_codes, prior_codes)
 
-    # --- Manifest v1: always emit manifest.json in output dir ---
-    manifest_path = args.out.parent / "manifest.json"
+    _emit_inputs_manifest(inputs_manifest_path, report)
 
     files_list = [
         {
-            "path": args.out.name,
-            "sha256": sha256_file(args.out, newline_stable=True),
+            "path": report_path.name,
+            "sha256": sha256_file(report_path, newline_stable=True),
             # role inferred
         },
         {
             "path": md_path.name,
             "sha256": sha256_file(md_path, newline_stable=True),
+            # role inferred
+        },
+        {
+            "path": inputs_manifest_path.relative_to(manifest_path.parent).as_posix(),
+            "sha256": sha256_file(inputs_manifest_path, newline_stable=True),
             # role inferred
         },
     ]
@@ -121,7 +195,7 @@ def main(args) -> int:
         fairy_version=report.get("engine", {}).get("fairy_core_version", args.fairy_version),
         rulepack_id=rp_id,
         rulepack_version=rp_version,
-        source_report=args.out.name,
+        source_report=report_path.name,
         files=files_list,
     )
 
@@ -157,7 +231,7 @@ def main(args) -> int:
     print(f"FAIL findings:    {fail_count} {fail_codes}")
     print(f"WARN findings:    {warn_count} {warn_codes}")
     print(f"submission_ready: {submission_ready}")
-    print(f"Report JSON:      {args.out}")
+    print(f"Report JSON:      {report_path}")
     print("")
 
     # Extract inputs from metadata.inputs
