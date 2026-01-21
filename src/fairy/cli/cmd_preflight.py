@@ -183,7 +183,7 @@ def main(args) -> int:
             # role inferred
         },
         {
-            "path": inputs_manifest_path.relative_to(manifest_path.parent).as_posix,
+            "path": inputs_manifest_path.relative_to(manifest_path.parent).as_posix(),
             "sha256": sha256_file(inputs_manifest_path, newline_stable=True),
             # role inferred
         },
