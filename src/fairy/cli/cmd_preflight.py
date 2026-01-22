@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from fairy.core.services.preflight_profiles import get_registry
+
 from ..core.services.manifest import build_manifest_v1
 from ..core.services.preflight_profiles import run_profile
 from ..core.services.provenance import sha256_file
@@ -18,6 +20,11 @@ except Exception:
 
 
 def add_subparser(sub):
+
+    reg = get_registry()
+    choices = reg.list_profile_ids()
+    profiles_help = "\n".join(f"  {p.id:<9} {p.description}" for p in reg.list_profiles())
+
     pf = sub.add_parser(
         "preflight",
         help="Run FAIRy preflight workflow (profile-based operator mode).",
@@ -28,7 +35,10 @@ def add_subparser(sub):
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=(
             "Profiles:\n"
+            f"{profiles_help}\n\n"
             "  geo     GEO-style samples/files TSV preflight\n\n"
+            "  spellbook  Validate-style preflight for exactly 2 inputs (--inputs A B)\n"
+            "  generic    Alias of spellbook\n\n"
             "Legacy:\n"
             "  fairy preflight --samples ... --files ...  (defaults to geo; will be deprecated)\n"
         ),
@@ -38,13 +48,24 @@ def add_subparser(sub):
     pf.add_argument(
         "profile",
         nargs="?",
-        choices=["geo"],
+        choices=choices,
         help="Preflight profile to run (e.g., geo).",
     )
 
     pf.add_argument("--rulepack", type=Path, required=True)
-    pf.add_argument("--samples", type=Path, required=True)
-    pf.add_argument("--files", type=Path, required=True)
+
+    # GEO-style inputs (required only for geo/legacy; validated in main)
+    pf.add_argument("--samples", type=Path)
+    pf.add_argument("--files", type=Path)
+
+    # Validate-style inputs (required only for spellbook/generic; validated in main)
+    pf.add_argument(
+        "--inputs",
+        nargs="+",
+        type=Path,
+        metavar="PATH",
+        help="Validate-style input paths (spellbook/generic expects exactly 2: A B).",
+    )
 
     out_group = pf.add_mutually_exclusive_group(required=True)
     out_group.add_argument(
@@ -148,7 +169,7 @@ def main(args) -> int:
     is_legacy = profile is None
 
     profile_id = "geo" if is_legacy else profile
-
+    # legacy guidance
     if is_legacy:
         print("ℹ️  This invocation uses the GEO preflight profile.")
         print(
@@ -156,6 +177,28 @@ def main(args) -> int:
             "--out-dir <DIR>"
         )
         print("")
+
+    # Build inputs map per profile
+    if profile_id == "geo":
+        if not getattr(args, "samples", None) or not getattr(args, "files", None):
+            print("Error: geo profile requires --samples and --files")
+            return 2
+        inputs_map = {"samples": args.samples, "files": args.files}
+
+    elif profile_id in ("spellbook", "generic"):
+        inputs_list = getattr(args, "inputs", None)
+        if not inputs_list:
+            print(f"Error: {profile_id} profile requires --inputs A B")
+            return 2
+        if len(inputs_list) != 2:
+            print(f"Error: {profile_id} profile currently requires exactly 2 inputs (A B)")
+            return 2
+        # preserve order and stable keys for metadata
+        inputs_map = {"input_01": inputs_list[0], "input_02": inputs_list[1]}
+
+    else:
+        print(f"Error: unknown profile '{profile_id}'")
+        return 2
 
     # load params file if provided
     try:
@@ -167,7 +210,7 @@ def main(args) -> int:
     report = run_profile(
         profile_id,
         rulepack=args.rulepack,
-        inputs={"samples": args.samples, "files": args.files},
+        inputs=inputs_map,
         fairy_version=args.fairy_version,
         params=params,
     )

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Protocol
@@ -95,4 +96,7 @@ class Report:
 
 
 def now_utc_iso() -> str:
-    return datetime.now(tz=timezone.utc).isoformat()
+    fixed = os.getenv("FAIRY_FIXED_TIMESTAMP")
+    if fixed:
+        return fixed
+    return datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
