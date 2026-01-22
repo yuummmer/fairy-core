@@ -21,7 +21,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_rulepack(sub)
 
     # --- Back-compat umbrella: `run ...`
-    run = sub.add_parser("run", help="(compat) Command group: validate | preflight | rulepack")
+    run = sub.add_parser(
+        "run",
+        help="(compat/deprecated) Legacy command group. Use: validate | preflight | rulepack.",
+    )
     # Allow legacy style: `run --mode rulepack --rulepack ...` (no subcommand)
     run.add_argument("--mode", choices=["rulepack", "legacy"], default="rulepack")
     run.add_argument("--rulepack", type=Path)

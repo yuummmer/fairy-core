@@ -131,7 +131,7 @@ def main(argv=None) -> int:
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "validate",
-        help="Validate dataset(s) against a rulepack",
+        help="Engine / CI mode. Run checks and write reports (PASS/WARN/FAIL).",
         description=(
             "Use a single positional INPUT (legacy) or repeat\n--inputs name=path for multi-input."
         ),
