@@ -27,7 +27,10 @@ def add_subparser(sub):
 
     pf = sub.add_parser(
         "preflight",
-        help="Run FAIRy preflight workflow (profile-based operator mode).",
+        help=(
+            "Operator mode. Profile-based workflows that write "
+            "handoff-ready artifacts to --out-dir."
+        ),
         description=(
             "FAIRy preflight (operator mode). "
             "Run a named preflight profile to produce handoff-ready artifacts."
@@ -36,11 +39,15 @@ def add_subparser(sub):
         epilog=(
             "Profiles:\n"
             f"{profiles_help}\n\n"
-            "  geo     GEO-style samples/files TSV preflight\n\n"
-            "  spellbook  Validate-style preflight for exactly 2 inputs (--inputs A B)\n"
-            "  generic    Alias of spellbook\n\n"
             "Legacy:\n"
-            "  fairy preflight --samples ... --files ...  (defaults to geo; will be deprecated)\n"
+            "  fairy preflight --samples ... --files ...  (defaults to geo; will be deprecated)\n\n"
+            "Examples:\n"
+            "  GEO preflight:\n"
+            "    fairy preflight geo --rulepack <RULEPACK> "
+            "--samples samples.tsv --files files.tsv --out-dir out/\n\n"
+            "  Generic (2-input) preflight:\n"
+            "    fairy preflight generic --rulepack <RULEPACK> "
+            "--inputs A.csv B.csv --out-dir out/\n"
         ),
     )
 
@@ -173,7 +180,7 @@ def main(args) -> int:
     if is_legacy:
         print("ℹ️  This invocation uses the GEO preflight profile.")
         print(
-            "    Prefer: fairy preflight geo --rulepack ... --samples ... --files ..."
+            "    Prefer: fairy preflight geo --rulepack ... --samples ... --files ... "
             "--out-dir <DIR>"
         )
         print("")
@@ -302,7 +309,8 @@ def main(args) -> int:
     by_level = summary.get("by_level", {})
     fail_count = by_level.get("fail", 0)
     warn_count = by_level.get("warn", 0)
-    submission_ready = fail_count == 0
+    # Use submission_ready from summary if available, otherwise compute it
+    submission_ready = summary.get("submission_ready", fail_count == 0)
 
     print(f"FAIL findings:    {fail_count} {fail_codes}")
     print(f"WARN findings:    {warn_count} {warn_codes}")
@@ -339,4 +347,5 @@ def main(args) -> int:
             print(f"  ✔ {code}")
     print("")
 
+    # Exit code from summary (nice-to-have: use persisted submission_ready)
     return 0 if submission_ready else 1

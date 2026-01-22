@@ -317,6 +317,7 @@ def run_rulepack(
         "summary": {
             "by_level": by_level,
             "by_rule": by_rule,
+            "submission_ready": by_level.get("fail", 0) == 0,
         },
         "results": results,
         # Optional fields for future extensibility
