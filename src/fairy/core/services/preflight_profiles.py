@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from fairy.core.services import validator
+
 # --- Profile interface -------------------------------------------------------
 
 RunnerFn = Callable[..., dict[str, Any]]
@@ -42,6 +44,12 @@ class ProfilesRegistry:
             for p in sorted(self._profiles.values(), key=lambda x: x.id)
         ]
 
+    def list_profile_ids(self) -> list[str]:
+        return sorted(self._profiles.keys())
+
+    def list_profiles(self) -> list[PreflightProfile]:
+        return [self._profiles[k] for k in sorted(self._profiles.keys())]
+
 
 # --- Built-in runners --------------------------------------------------------
 
@@ -59,33 +67,41 @@ def _run_geo(
     if not isinstance(samples, Path) or not isinstance(files, Path):
         raise ValueError("geo profile requires inputs['samples'] and inputs['files'] as Paths")
 
-    from .validator import run_rulepack  # existing GEO runner
-
-    return run_rulepack(
+    return validator.run_rulepack(
         rulepack_path=rulepack,
         samples_path=samples,
         files_path=files,
         fairy_version=fairy_version,
-        params=params,
+        params=params or {},
     )
 
 
 def _run_generic(
     *,
     rulepack: Path,
-    inputs: dict[str, Any],
+    inputs: dict[str, Path],
     fairy_version: str,
-    params: dict[str, Any],
+    params: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    # Starter implementation:
-    # - For #121, either raise NotImplemented OR call existing generic runner if present.
-    #
-    # If you already have a generic engine runner (rulepack_runner.py), wire it here.
-    #
-    # Example shape: inputs may be {"inputs": [Path(...), Path(...)]}
-    #
-    # For now, keep it explicit so #113 can implement it cleanly.
-    raise NotImplementedError("generic profile runner will be implemented in #113")
+    """
+    Spellbook/generic = 2-input preflight.
+    input_01 -> samples table
+    input_02 -> files table
+    Returns preflight report v1 (same shape as geo), so CLI can write
+    manifest/report/md consistently.
+    """
+    a = inputs.get("input_01")
+    b = inputs.get("input_02")
+    if not a or not b:
+        raise ValueError("spellbook/generic requires inputs {'input_01': A, 'input_02': B}")
+
+    return validator.run_rulepack(
+        rulepack_path=rulepack,
+        samples_path=a,
+        files_path=b,
+        fairy_version=fairy_version,
+        params=params,
+    )
 
 
 # --- Singleton registry + entrypoint ----------------------------------------
@@ -97,19 +113,34 @@ def get_registry() -> ProfilesRegistry:
     global _REGISTRY
     if _REGISTRY is None:
         reg = ProfilesRegistry()
+
         reg.register(
             PreflightProfile(
-                id="geo", description="GEO-style samples/files TSV preflight", runner=_run_geo
+                id="geo",
+                description="GEO-style samples/files TSV preflight",
+                runner=_run_geo,
             )
         )
+
+        # v0: two-input wrapper over the existing 2-table engine
         reg.register(
             PreflightProfile(
-                id="generic",
-                description="Generic validate-style inputs preflight",
+                id="spellbook",
+                description="Validate-style preflight for exactly 2 inputs (--inputs A B)",
                 runner=_run_generic,
             )
         )
+
+        reg.register(
+            PreflightProfile(
+                id="generic",
+                description="Alias of spellbook (2-input validate-style preflight)",
+                runner=_run_generic,
+            )
+        )
+
         _REGISTRY = reg
+
     return _REGISTRY
 
 

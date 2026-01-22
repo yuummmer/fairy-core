@@ -33,13 +33,8 @@ from ..models.preflight_report_v1 import (
     InputMetadata,
     RulepackMetadata,
 )
-from ..validation_api import (
-    WarningItem,
-    now_utc_iso,
-)
-from ..validation_api import (
-    validate_csv as _core_validate_csv,
-)
+from ..validation_api import WarningItem, now_utc_iso
+from ..validation_api import validate_csv as _core_validate_csv
 from ..validators import rna  # to call check_* helpers
 from .provenance import (
     CANON_VERSION_V1,

@@ -102,7 +102,12 @@ def _read_table(path: Path, delimiter: str | None = None) -> pd.DataFrame:
 
 
 def run_rulepack(
-    inputs_map: dict[str, Path], rulepack: dict, rp_path: Path, now_iso: str
+    inputs_map: dict[str, Path],
+    rulepack: dict,
+    rp_path: Path,
+    now_iso: str,
+    *,
+    params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Validate one or more inputs using a rulepack.
