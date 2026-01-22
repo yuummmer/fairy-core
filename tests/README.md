@@ -47,11 +47,21 @@ Test helpers normalize volatile fields before comparing reports:
 
 See `tests/helpers.py` for the normalization implementation.
 
-## Schema Validation Tests
+## Test Organization
 
-- `test_preflight_report_schema.py`: Comprehensive tests for report generation and schema validation
-- `test_schema_validation_edge_cases.py`: Edge cases and invalid report handling
-- `test_schema_drift_guard.py`: Contract tests to prevent accidental schema changes
+Tests are organized to mirror the source code structure:
+
+- **`cli/`**: CLI command tests (preflight, rulepack, etc.)
+- **`core/`**: Core module tests
+  - **`test_models/`**: Manifest and model tests
+  - **`test_services/`**: Service layer tests (preflight profiles, provenance, etc.)
+- **`rulepack/`**: Rulepack loader and validation tests
+- **`validation/`**: Validation engine tests (rule validators, rulepack runner, etc.)
+- **`schema/`**: Schema validation tests
+  - `test_preflight_report_schema.py`: Comprehensive tests for report generation and schema validation
+  - `test_schema_validation_edge_cases.py`: Edge cases and invalid report handling
+  - `test_schema_drift_guard.py`: Contract tests to prevent accidental schema changes
+- **`integration/`**: End-to-end integration tests
 
 ## Running Tests
 
@@ -60,7 +70,12 @@ See `tests/helpers.py` for the normalization implementation.
 pytest -q
 
 # Run specific test file
-pytest -q tests/test_preflight_report_schema.py
+pytest -q tests/schema/test_preflight_report_schema.py
+
+# Run tests for a specific module
+pytest -q tests/core/
+pytest -q tests/validation/
+pytest -q tests/integration/
 
 # Run with coverage
 pytest --cov=src/fairy --cov-report=term-missing

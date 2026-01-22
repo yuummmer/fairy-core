@@ -1,4 +1,4 @@
-from .helpers import normalize_json
+from ...helpers import normalize_json
 
 
 def test_preflight_output_is_deterministic(

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .helpers import normalize_json
+from ..helpers import normalize_json
 
 
 def test_preflight_generates_expected_report(
@@ -31,7 +31,7 @@ def test_preflight_generates_expected_report(
     assert out_json.exists(), f"report.json not created.\nSTDOUT:\n{out}\nSTDERR:\n{err}"
 
     got = normalize_json(out_json)
-    golden = Path(__file__).parents[0] / "golden" / "preflight.report.json"
+    golden = Path(__file__).parents[2] / "golden" / "preflight.report.json"
     assert golden.exists(), "Missing golden: tests/golden/preflight.report.json"
     want = normalize_json(golden)
 
