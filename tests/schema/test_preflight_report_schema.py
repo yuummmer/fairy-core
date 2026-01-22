@@ -19,8 +19,8 @@ from fairy.core.services.validator import run_rulepack
 
 def _get_schema_path() -> Path:
     """Get path to preflight_report_v1.schema.json relative to repo root."""
-    # Assume we're in tests/ directory, so go up one level to repo root
-    repo_root = Path(__file__).resolve().parent.parent
+    # We're in tests/schema/, so go up 2 levels to repo root
+    repo_root = Path(__file__).resolve().parents[2]
     schema_path = repo_root / "schemas" / "preflight_report_v1.schema.json"
     return schema_path
 

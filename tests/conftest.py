@@ -2,7 +2,11 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from freezegun import freeze_time
+
+try:
+    from freezegun import freeze_time
+except ImportError:
+    freeze_time = None  # freezegun not installed
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,5 +57,7 @@ def run_cli():
 @pytest.fixture
 def freeze_2025():
     """Freeze time for deterministic timestamps in outputs."""
+    if freeze_time is None:
+        pytest.skip("freezegun is not installed")
     with freeze_time("2025-01-01T12:00:00Z"):
         yield

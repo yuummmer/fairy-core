@@ -6,7 +6,7 @@ from jsonschema import Draft202012Validator
 
 
 def test_manifest_v1_schema_validates_example():
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[3]
 
     schema_path = repo_root / "schemas" / "manifest_v1.schema.json"
     example_path = repo_root / "fixtures" / "manifest_v1" / "example.json"

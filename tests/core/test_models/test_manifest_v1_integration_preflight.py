@@ -9,7 +9,7 @@ from fairy.cli import cmd_preflight
 
 
 def test_preflight_emits_manifest_v1_and_links_to_report(tmp_path: Path) -> None:
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[3]
 
     rulepack_path = repo_root / "tests" / "fixtures" / "rulepacks" / "geo_bulk_seq_min_v0_2_0.json"
     samples_path = repo_root / "tests" / "fixtures" / "geo_bulk_seq_min" / "samples.tsv"
