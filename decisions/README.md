@@ -45,7 +45,7 @@ Each ADR follows a standard template with the following sections:
 | [0002](0002-rulepacks-vs-runner-separation.md) | Rulepacks vs runner separation | Accepted | 2025-09-XX | (core implementation) |
 | [0003](0003-dataset-bundle-manifest.md) | Dataset bundle manifest with hash-based dataset_id | Accepted | 2025-11-17 | (schema + implementation + docs) |
 | [0004](0004-rulepack-organization.md) | Rulepack organization and composition | Accepted | 2025-12-15 | (schema + loader) |
-| [0005](0005-packaging-as-first-class-packagers.md) | Bundles as first-class output (BagIt first) | Proposed | 2025-12-30 | |
+| [0005](0005-packaging-as-first-class-packagers.md) | Bundles as first-class output (BagIt first) | Accepted | 2025-12-30 | Preflight profiles + handoff output directory (2026-01-22) |
 | [0006](0006-dataset-fingerprint-and-pass-attestation-ids.md) | Dataset fingerprint and PASS attestation IDs | Proposed | 2026-01-01 | |
 | [0007](0007-profiles-as-workflow-composition.md) | Profiles as workflow composition over rulepacks | Proposed | 2026-01-05 | |
 

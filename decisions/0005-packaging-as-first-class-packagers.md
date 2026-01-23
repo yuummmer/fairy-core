@@ -1,7 +1,7 @@
 # ADR-0005: Bundles as first-class output (BagIt first)
 
 **Date:** 2025-12-30
-**Status:** Proposed
+**Status:** Accepted
 **Deciders:** Jennifer Slotnick
 **Tags:** architecture, packaging, handoff, bagit
 
@@ -15,10 +15,38 @@ Clarifications to the original proposal:
 ## Update (2026-01-20)
 
 Preflight output directory requirements:
-- Preflight MUST emit an output directory containing `manifest.json` and `report.json`.
+- Preflight MUST emit an output directory containing `manifest.json` and `preflight_report.json`.
 - `manifest.json` follows Manifest v1 (keys: `schema_version`, `dataset_id`, `created_at_utc`, `fairy_version`, `hash_algorithm`, `rulepack`, `source_report`, `files`; optional: `attestation_id`, `provenance`).
-- `report.json` is the evidence report and MUST include `metadata.inputs` attestation mapping (`path` + `sha256` + `rows`/`bytes` where applicable).
+- `preflight_report.json` is the evidence report and MUST include `metadata.inputs` attestation mapping (`path` + `sha256` + `rows`/`bytes` where applicable).
 - Future bundling consumes this output directory without additional inference.
+
+## Update (2026-01-22) - Implementation Complete
+
+**Preflight Profiles + Handoff Outputs Implementation:**
+
+The following requirements from this ADR have been implemented and accepted:
+
+1. **Preflight is universal operator mode (not GEO-only):**
+   - `fairy preflight` is now a profile-based command that works across domains
+   - The GEO-specific implementation has been moved under `fairy preflight geo` profile
+   - Preflight serves as the universal human-friendly entrypoint for all domain workflows
+
+2. **Domain/repo workflows are implemented as profiles:**
+   - Profiles are registered in a profiles registry (`fairy.core.services.preflight_profiles`)
+   - Current profiles: `geo` (GEO-style samples/files TSV), `generic` (2-input validate-style), `spellbook` (alias of generic)
+   - Profiles can be extended for other domains (e.g., INSDC, DwC, etc.)
+   - Profile selection: `fairy preflight <profile> --rulepack ... --inputs ... --out-dir ...`
+
+3. **Preflight produces handoff-ready artifacts in an output directory:**
+   - Preflight writes to `--out-dir` (required for bundling)
+   - Outputs include: `preflight_report.json`, `preflight_report.md`, `manifest.json`, `artifacts/inputs_manifest.json`
+   - All artifacts are written to a single output directory, making it ready for future bundling via `--bundle bagit`
+
+4. **Legacy compatibility:**
+   - Legacy invocation `fairy preflight --samples ... --files ... --out ...` still works
+   - Legacy mode defaults to `geo` profile and prints non-fatal guidance message pointing to `fairy preflight geo`
+
+**Implementation status:** Preflight profiles + handoff output directory are complete. BagIt bundling remains a future next step.
 
 ## Context
 
@@ -26,13 +54,11 @@ Preflight output directory requirements:
 
 FAIRy has three commands with distinct purposes:
 
-- **`fairy validate`** — The engine command: runs checks and produces validation reports
-- **`fairy preflight`** — The human-friendly entrypoint by design, but today it's GEO TSV-specific; it will become profile-based + output-dir oriented
+- **`fairy validate`** — Engine/CI mode: runs checks and produces reports
+- **`fairy preflight`** — Operator mode: profile-based workflows that emit handoff-ready artifacts to `--out-dir`
 - **`--bundle bagit`** (planned) — Optional delivery format: packages inputs + outputs for transfer
 
 **Mental model:** `validate` = checks; `preflight` = checks + outputs + guidance; `bundle` = delivery format (optional)
-
-**Note:** Preflight is intended to be universal operator mode. The current GEO-specific implementation will move under `preflight geo` / profiles as the command evolves to be profile-based.
 
 For detailed command documentation, see [CLI usage](../docs/cli.md).
 
@@ -52,10 +78,10 @@ Introduce a new concept in FAIRy-core: **Packagers (aka Exporters)**.
 
 - **Rulepacks** define validation rules and may optionally *recommend or require* one or more packagers.
 - **Packagers** are responsible for producing a handoff-ready bundle from the preflight output directory:
-  - Preflight output directory (containing `manifest.json` and `report.json`)
+  - Preflight output directory (containing `manifest.json` and `preflight_report.json`)
   - Packager configuration (algorithm/options)
 
-Packagers consume the preflight output directory without additional inference; `manifest.json` and `report.json` provide all necessary metadata.
+Packagers consume the preflight output directory without additional inference; `manifest.json` and the preflight report provide all necessary metadata.
 
 **Workflow integration:**
 - `fairy preflight` remains the primary user entrypoint (the human-friendly default, universal operator mode).
@@ -68,7 +94,7 @@ Packagers consume the preflight output directory without additional inference; `
 **Architecture decision (accepted):**
 - Packagers/bundles are first-class concepts in FAIRy-core.
 - Bundling remains invoked from preflight.
-- Preflight is universal operator mode; current GEO-specific implementation will move under `preflight geo` / profiles.
+- Preflight is universal operator mode; GEO-specific workflow is implemented as the `preflight geo` profile.
 
 **Next steps (implementation not yet started):**
 - Ship **BagIt** as the first official packager implementation.
@@ -104,8 +130,8 @@ This separation provides several key benefits:
 
 ### Packager interface (conceptual)
 A packager:
-- consumes the preflight output directory (containing `manifest.json` and `report.json`)
-- reads `manifest.json` and `report.json` to determine bundle contents
+- consumes the preflight output directory (containing `manifest.json` and `preflight_report.json`)
+- reads `manifest.json` and the preflight report to determine bundle contents
 - writes to a bundle output directory (or archive)
 - returns a structured summary (paths written, algorithm used, validation status)
 
@@ -116,7 +142,7 @@ Packagers do not need to re-infer file metadata or recompute checksums; they con
 For BagIt (and similar formats), we adopt this convention:
 
 - **Payload (data/)**: User-provided dataset files (inputs)
-- **Tag files (bag metadata)**: FAIRy artifacts (report.json, report.md, manifest, provenance, etc.)
+- **Tag files (bag metadata)**: FAIRy artifacts (preflight_report.json, preflight_report.md, manifest.json, provenance, etc.)
 
 This separation keeps user data distinct from FAIRy-generated metadata and aligns with BagIt's intended use: payload contains the data being preserved, while tag files contain metadata about the bag itself.
 
@@ -126,11 +152,11 @@ Output directory structure:
 
 - **Preflight outputs**: `<out>/` MUST contain:
   - `manifest.json` (Manifest v1 format)
-  - `report.json` (evidence report with `metadata.inputs` attestation mapping)
-  - `report.md` (human-readable markdown report, optional)
+  - `preflight_report.json` (evidence report with `metadata.inputs` attestation mapping)
+  - `preflight_report.md` (human-readable markdown report, optional)
 - **Bundle outputs**: `<out>/bundles/<name>/` (e.g., `<out>/bundles/bag/` for BagIt)
 
-Future bundling consumes the preflight output directory (`<out>/`) without additional inference. The packager reads `manifest.json` and `report.json` to construct the bundle.
+Future bundling consumes the preflight output directory (`<out>/`) without additional inference. The packager reads `manifest.json` and `preflight_report.json` to construct the bundle.
 
 Alternative considered: `<out>/<name>.bag/` (flatter structure). The `bundles/` subdirectory approach groups all bundles together and allows multiple bundles per preflight run if needed in the future.
 
@@ -138,7 +164,7 @@ Alternative considered: `<out>/<name>.bag/` (flatter structure). The `bundles/` 
 
 **Primary integration (v0):**
 - Add `--bundle <packager>` flag to `fairy preflight` command
-  - Example: `fairy preflight --rulepack ... --samples ... --files ... --out ... --bundle bagit`
+  - Example: `fairy preflight geo --rulepack ... --samples ... --files ... --out-dir out/ --bundle bagit`
   - After preflight completes, automatically packages inputs + outputs using the specified packager
   - Preflight remains the main user entrypoint; bundling is an optional output step
   - Aligns with FAIRy's command structure: `preflight` is the human-friendly default
