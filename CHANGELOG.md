@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-01-22
+
+### Changed
+- Clarify CLI roles: `validate` = engine/CI mode, `preflight` = operator mode, `run` = compat/deprecated
+- `fairy preflight --help` now lists available profiles (geo, generic, spellbook) with examples
+- Updated CLI help text and documentation to reflect mental model (validate = checks; preflight = checks + outputs + guidance)
+- ADR-0005 marked as Accepted; preflight profiles + handoff output directory implementation complete
+
+## [0.2.2] - 2025-12-26
+
+### Added
+- Auto-detect TSV delimiter when loading inputs
+
+### Changed
+- Updated `.gitignore` to ignore local scratch outputs
+
 ## [0.2.1] - 2025-12-22
 
 ### Added
