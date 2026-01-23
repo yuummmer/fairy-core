@@ -22,31 +22,18 @@ Preflight output directory requirements:
 
 ## Update (2026-01-22) - Implementation Complete
 
-**Preflight Profiles + Handoff Outputs Implementation:**
+**Handoff Output Directory Implementation:**
 
-The following requirements from this ADR have been implemented and accepted:
+The following requirement from this ADR has been implemented and accepted:
 
-1. **Preflight is universal operator mode (not GEO-only):**
-   - `fairy preflight` is now a profile-based command that works across domains
-   - The GEO-specific implementation has been moved under `fairy preflight geo` profile
-   - Preflight serves as the universal human-friendly entrypoint for all domain workflows
+**Preflight produces handoff-ready artifacts in an output directory:**
+- Preflight writes to `--out-dir` (required for bundling)
+- Outputs include: `preflight_report.json`, `preflight_report.md`, `manifest.json`, `artifacts/inputs_manifest.json`
+- All artifacts are written to a single output directory, making it ready for future bundling via `--bundle bagit`
 
-2. **Domain/repo workflows are implemented as profiles:**
-   - Profiles are registered in a profiles registry (`fairy.core.services.preflight_profiles`)
-   - Current profiles: `geo` (GEO-style samples/files TSV), `generic` (2-input validate-style), `spellbook` (alias of generic)
-   - Profiles can be extended for other domains (e.g., INSDC, DwC, etc.)
-   - Profile selection: `fairy preflight <profile> --rulepack ... --inputs ... --out-dir ...`
+**Note:** Preflight is now profile-based (see [ADR-0007](0007-profiles-as-workflow-composition.md) for profile architecture details). This enables preflight to serve as the universal operator mode entrypoint across domains, which is a prerequisite for the bundling workflow described in this ADR.
 
-3. **Preflight produces handoff-ready artifacts in an output directory:**
-   - Preflight writes to `--out-dir` (required for bundling)
-   - Outputs include: `preflight_report.json`, `preflight_report.md`, `manifest.json`, `artifacts/inputs_manifest.json`
-   - All artifacts are written to a single output directory, making it ready for future bundling via `--bundle bagit`
-
-4. **Legacy compatibility:**
-   - Legacy invocation `fairy preflight --samples ... --files ... --out ...` still works
-   - Legacy mode defaults to `geo` profile and prints non-fatal guidance message pointing to `fairy preflight geo`
-
-**Implementation status:** Preflight profiles + handoff output directory are complete. BagIt bundling remains a future next step.
+**Implementation status:** Handoff output directory is complete. BagIt bundling remains a future next step.
 
 ## Context
 
@@ -94,7 +81,7 @@ Packagers consume the preflight output directory without additional inference; `
 **Architecture decision (accepted):**
 - Packagers/bundles are first-class concepts in FAIRy-core.
 - Bundling remains invoked from preflight.
-- Preflight is universal operator mode; GEO-specific workflow is implemented as the `preflight geo` profile.
+- Preflight is universal operator mode (see [ADR-0007](0007-profiles-as-workflow-composition.md) for profile architecture).
 
 **Next steps (implementation not yet started):**
 - Ship **BagIt** as the first official packager implementation.
