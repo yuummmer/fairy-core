@@ -115,6 +115,36 @@ Run pre-submission validation for GEO-style bulk RNA-seq datasets. This command 
 #### Usage
 
 ```bash
+fairy preflight geo \
+  --rulepack path/to/rulepack.json \
+  --samples path/to/samples.tsv \
+  --files path/to/files.tsv \
+  --out-dir out/
+```
+
+#### Options
+
+- `--rulepack` (required): Path to JSON rulepack file
+- `--samples` (required for geo profile): Path to samples.tsv (tab-delimited sample metadata)
+- `--files` (required for geo profile): Path to files.tsv (tab-delimited file manifest)
+- `--inputs` (required for generic/spellbook profiles): Two input paths (e.g., `--inputs A.csv B.csv`)
+- `--out-dir` (required): Output directory for handoff-ready artifacts (report, manifest, markdown, etc.)
+- `--fairy-version`: Version string to embed in attestation (default: current FAIRy version)
+- `--param-file`: Path to YAML file with tunable parameters (see [Parameter files](./params.md) for details)
+
+The command generates multiple artifacts in the output directory:
+- `preflight_report.json`: The main validation report
+- `preflight_report.md`: Human-readable Markdown summary
+- `manifest.json`: Manifest with file provenance
+- `artifacts/inputs_manifest.json`: Input file metadata
+
+#### Legacy
+
+The `--out` option provides backward compatibility with older invocation patterns. It writes a single JSON report file (and a corresponding `.md` file) instead of the full handoff-ready artifact set.
+
+**Old invocation pattern:**
+
+```bash
 fairy preflight \
   --rulepack path/to/rulepack.json \
   --samples path/to/samples.tsv \
@@ -122,16 +152,13 @@ fairy preflight \
   --out path/to/report.json
 ```
 
-#### Options
+**What `--out` does:**
+- Writes the JSON report to the specified file path
+- Writes a Markdown report to the same location with `.md` extension
+- Creates a `manifest.json` in the same directory as the report file
+- Does not create the full `artifacts/` directory structure
 
-- `--rulepack` (required): Path to JSON rulepack file
-- `--samples` (required): Path to samples.tsv (tab-delimited sample metadata)
-- `--files` (required): Path to files.tsv (tab-delimited file manifest)
-- `--out` (required): Path to write the JSON report
-- `--fairy-version`: Version string to embed in attestation (default: current FAIRy version)
-- `--param-file`: Path to YAML file with tunable parameters (see [Parameter files](./params.md) for details)
-
-The command also generates a Markdown report alongside the JSON (same path with `.md` extension).
+**Note:** Prefer `--out-dir` for new workflows as it produces the complete set of handoff-ready artifacts.
 
 ### `fairy rulepack`
 
@@ -176,11 +203,11 @@ fairy validate \
 ### GEO preflight check
 
 ```bash
-fairy preflight \
+fairy preflight geo \
   --rulepack src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json \
   --samples demos/scratchrun/samples.tsv \
   --files demos/scratchrun/files.tsv \
-  --out out/geo-report.json
+  --out-dir out/
 ```
 
 ## Getting help

@@ -35,19 +35,28 @@ def add_subparser(sub):
             "FAIRy preflight (operator mode). "
             "Run a named preflight profile to produce handoff-ready artifacts."
         ),
+        usage=(
+            "fairy preflight [profile] --rulepack RULEPACK [--samples SAMPLES] "
+            "[--files FILES] [--inputs PATH ...] (--out-dir OUT_DIR | --out OUT) "
+            "[--fairy-version FAIRY_VERSION] [--param-file PATH]"
+        ),
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=(
             "Profiles:\n"
             f"{profiles_help}\n\n"
-            "Legacy:\n"
-            "  fairy preflight --samples ... --files ...  (defaults to geo; will be deprecated)\n\n"
             "Examples:\n"
             "  GEO preflight:\n"
             "    fairy preflight geo --rulepack <RULEPACK> "
             "--samples samples.tsv --files files.tsv --out-dir out/\n\n"
             "  Generic (2-input) preflight:\n"
             "    fairy preflight generic --rulepack <RULEPACK> "
-            "--inputs A.csv B.csv --out-dir out/\n"
+            "--inputs A.csv B.csv --out-dir out/\n\n"
+            "Legacy:\n"
+            "  --out OUT             Path to write the preflight JSON report "
+            "(legacy; will be removed).\n"
+            "  Legacy invocation (will be deprecated): "
+            "fairy preflight --samples ... --files ... (defaults to geo)\n"
+            "  Use --out-dir for all new usage.\n"
         ),
     )
 
@@ -76,14 +85,12 @@ def add_subparser(sub):
 
     out_group = pf.add_mutually_exclusive_group(required=True)
     out_group.add_argument(
-        "--out", type=Path, help="(legacy) Path to write the preflight JSON report."
-    )
-    out_group.add_argument(
         "--out-dir",
         dest="out_dir",
         type=Path,
         help="Output directory for handoff-ready artifacts (report, manifest, markdown, etc.).",
     )
+    out_group.add_argument("--out", type=Path, help=argparse.SUPPRESS)
 
     pf.add_argument("--fairy-version", default=FAIRY_VERSION)
     pf.add_argument(
