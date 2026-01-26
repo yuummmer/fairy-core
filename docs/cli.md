@@ -110,12 +110,45 @@ fairy validate data_folder/ --rulepack rulepack.yaml --report-json out.json
 
 ### `fairy preflight`
 
-Run pre-submission validation for GEO-style bulk RNA-seq datasets. This command expects specific TSV files (samples.tsv and files.tsv).
+Run pre-submission validation workflows using profiles. Profiles are workflow compositions that define expected inputs, default parameters, and output configurations for common use cases.
+
+**What are profiles?**
+- Profiles are thin orchestration layers that compose rulepacks with workflow defaults
+- They define which inputs are expected (e.g., `samples.tsv` + `files.tsv` for GEO, or generic CSV files)
+- They provide stable, repeatable workflows for specific domains or use cases
+- Profiles do not contain validation logic; they reference rulepacks that do
+
+**Available profiles:**
+- `geo`: GEO-style bulk RNA-seq datasets (requires `--samples` and `--files` TSV files)
+- `generic` / `spellbook`: Generic 2-input validation (requires `--inputs` with exactly 2 files)
+
+To see all available profiles and their descriptions, run `fairy preflight --help`.
 
 #### Usage
 
+**With a profile (recommended):**
+
 ```bash
+# GEO profile: for GEO-style submissions
 fairy preflight geo \
+  --rulepack path/to/rulepack.json \
+  --samples path/to/samples.tsv \
+  --files path/to/files.tsv \
+  --out-dir out/
+
+# Generic profile: for custom 2-input workflows
+fairy preflight generic \
+  --rulepack path/to/rulepack.yaml \
+  --inputs A.csv B.csv \
+  --out-dir out/
+```
+
+**Without a profile (legacy):**
+
+If you omit the profile name, it defaults to `geo` for backward compatibility:
+
+```bash
+fairy preflight \
   --rulepack path/to/rulepack.json \
   --samples path/to/samples.tsv \
   --files path/to/files.tsv \
@@ -124,7 +157,8 @@ fairy preflight geo \
 
 #### Options
 
-- `--rulepack` (required): Path to JSON rulepack file
+- `profile` (optional): Profile name to use (e.g., `geo`, `generic`). If omitted, defaults to `geo` (legacy behavior)
+- `--rulepack` (required): Path to YAML or JSON rulepack file
 - `--samples` (required for geo profile): Path to samples.tsv (tab-delimited sample metadata)
 - `--files` (required for geo profile): Path to files.tsv (tab-delimited file manifest)
 - `--inputs` (required for generic/spellbook profiles): Two input paths (e.g., `--inputs A.csv B.csv`)
@@ -200,13 +234,22 @@ fairy validate \
   --report-json out/art-collections-report.json
 ```
 
-### GEO preflight check
+### GEO preflight check (geo profile)
 
 ```bash
 fairy preflight geo \
   --rulepack src/fairy/rulepacks/GEO-SEQ-BULK/v0_1_0.json \
   --samples demos/scratchrun/samples.tsv \
   --files demos/scratchrun/files.tsv \
+  --out-dir out/
+```
+
+### Generic preflight check (generic profile)
+
+```bash
+fairy preflight generic \
+  --rulepack path/to/rulepack.yaml \
+  --inputs table1.csv table2.csv \
   --out-dir out/
 ```
 
