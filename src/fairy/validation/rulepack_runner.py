@@ -367,7 +367,7 @@ def check_dup(
         return "FAIL", {"error": "config_missing_keys"}
     for k in keys:
         if k not in df.columns:
-            return "FAIL", {"error": "column_not_found", "column": k}
+            return _column_not_found_error(k, df)
 
     dup_mask = df.duplicated(subset=keys, keep="first")
     dup_pos = dup_mask.to_numpy().nonzero()[0].tolist()
@@ -396,7 +396,7 @@ def check_unique(
         return "FAIL", {"error": "config_missing_columns"}
     for c in columns:
         if c not in df.columns:
-            return "FAIL", {"error": "column_not_found", "column": c}
+            return _column_not_found_error(c, df)
 
     # composite unique via tuple
     series = df[columns].astype(object).apply(tuple, axis=1)
@@ -444,7 +444,7 @@ def check_enum(
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
-        return "FAIL", {"error": "column_not_found", "column": column}
+        return _column_not_found_error(column, df)
     if not isinstance(allow, list) or not allow:
         return "FAIL", {"error": "config_missing_allow"}
 
@@ -484,7 +484,7 @@ def check_range(
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
-        return "FAIL", {"error": "column_not_found", "column": column}
+        return _column_not_found_error(column, df)
 
     # numeric-only MVP; datetime can be added later
     series = pd.to_numeric(df[column], errors="coerce")
@@ -572,6 +572,32 @@ def _rows_sorted_1based(idx_like) -> list[int]:
     return [int(i) + 1 for i in sorted(map(int, idx_like))]
 
 
+def _column_not_found_error(column: str, df: pd.DataFrame) -> tuple[str, dict[str, Any]]:
+    """Generate a helpful column_not_found error with available columns and YAML syntax hints."""
+    available = sorted(df.columns.tolist())
+    hint = ""
+    suggestion = ""
+
+    # Check if column name looks like a YAML syntax error
+    # (starts with dash followed by alphanumeric/underscore)
+    if len(column) >= 2 and column.startswith("-") and (column[1].isalnum() or column[1] == "_"):
+        suggested_name = column.lstrip("-").strip()
+        hint = f"YAML list items require a space: use '- {suggested_name}', not '{column}'."
+
+        # Cheap win: if -id is missing but id exists, suggest it
+        if suggested_name in df.columns:
+            suggestion = suggested_name
+
+    return "FAIL", {
+        "error": "column_not_found",
+        "column": column,
+        "available_columns": available,
+        "available_column_count": len(available),
+        "hint": hint,
+        "suggestion": suggestion,
+    }
+
+
 def check_required(
     df: pd.DataFrame, columns: list[str], severity: str, rem_col=None, rem_label=None
 ) -> tuple[str, dict[str, Any]]:
@@ -645,7 +671,7 @@ def check_url(
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
-        return "FAIL", {"error": "column_not_found", "column": column}
+        return _column_not_found_error(column, df)
 
     allow = set(schemes or ["http", "https"])
     s = df[column]
@@ -676,7 +702,7 @@ def check_non_empty_trimmed(
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
-        return "FAIL", {"error": "column_not_found", "column": column}
+        return _column_not_found_error(column, df)
 
     s = df[column].astype("string")
     bad_mask = s.isna() | (s.str.strip().str.len() == 0)
@@ -720,7 +746,7 @@ def check_regex(
     if not column:
         return "FAIL", {"error": "config_missing_column"}
     if column not in df.columns:
-        return "FAIL", {"error": "column_not_found", "column": column}
+        return _column_not_found_error(column, df)
     if not regex:
         return "FAIL", {"error": "config_missing_regex"}
 
@@ -876,7 +902,29 @@ def write_markdown(report: dict[str, Any]) -> str:
             if ev.get("normalized") is True:
                 out.append("Normalized comparison applied.")
             if "error" in ev:
-                out.append(f"Error: {ev['error']}")
+                error_msg = f"Error: {ev['error']}"
+                if ev.get("column"):
+                    error_msg += f" — Column '{ev['column']}' not found."
+                if ev.get("available_columns"):
+                    cols = ev["available_columns"]
+                    total = ev.get("available_column_count", len(cols))
+                    # Show first 30 columns, then "... (+N more)" if there are more
+                    max_show = 30
+                    if len(cols) <= max_show:
+                        error_msg += f"\nAvailable columns ({total}): {', '.join(cols)}"
+                    else:
+                        shown = cols[:max_show]
+                        remaining = total - max_show
+                        error_msg += (
+                            f"\nAvailable columns (first {max_show} of {total}): "
+                            f"{', '.join(shown)}... (+{remaining} more)"
+                        )
+                out.append(error_msg)
+                if ev.get("suggestion"):
+                    out.append(f"Did you mean: {ev['suggestion']}")
+                if ev.get("hint"):
+                    # Put hint on its own line so it doesn't get lost
+                    out.append(f"Tip: {ev['hint']}")
             if ev.get("regex") and ev.get("rows"):
                 out.append(
                     f"Regex {ev.get('mode')} rows {ev.get('rows', [])} (count={ev.get('count', 0)})"

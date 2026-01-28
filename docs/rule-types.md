@@ -411,6 +411,28 @@ All rules follow this basic structure:
 - `remediation_link_column` (string, optional): Column name containing URLs for fixing failures. When a rule fails, values from this column are included in the failure evidence so users can click through to fix issues in the source system.
 - `remediation_link_label` (string, optional): Human-readable label for the remediation link (e.g., "Open record in portal"). Defaults to the column name if not specified.
 
+### YAML syntax tips
+
+When listing columns in YAML, always include a space after the dash:
+
+```yaml
+# ✅ Correct
+columns:
+  - id
+  - name
+
+# ❌ Wrong (missing space - YAML will treat "-id" as a string literal)
+columns:
+  -id
+  -name
+```
+
+Alternatively, use inline list syntax which is less error-prone:
+
+```yaml
+columns: ["id", "name"]
+```
+
 ### File patterns
 
 The `pattern` field in `config` uses shell-style glob matching:
