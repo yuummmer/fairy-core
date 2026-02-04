@@ -1,0 +1,124 @@
+meta:
+  name: dwc_starter
+  version: 0.1.0
+  description: Starter ingestion checks for Darwin Core-ish occurrence tables (tested on OBIS tiny CSV)
+
+rules:
+  # Core identifiers (blocking)
+  - id: dwc_occurrenceid_present
+    type: required
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      columns:
+        - occurrenceID
+
+  - id: dwc_occurrenceid_unique
+    type: unique
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      columns:
+        - occurrenceID
+
+  # Dates (blocking)
+  - id: dwc_eventdate_present
+    type: required
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      columns: ["eventDate"]
+
+  - id: dwc_eventdate_non_empty_trimmed
+    type: non_empty_trimmed
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      column: eventDate
+
+  - id: dwc_eventdate_looks_iso
+    type: regex
+    severity: warn
+    config:
+      pattern: "occurrence*.tsv"
+      column: eventDate
+      # Accept ISO date or date interval: 2019-10-29 or 2019-10-29/2019-10-29
+      regex: "^\\s*\\d{4}-\\d{2}-\\d{2}(\\s*/\\s*\\d{4}-\\d{2}-\\d{2})?\\s*$"
+      mode: not_matches
+      ignore_empty: true
+
+  # Coordinates
+  - id: dwc_decimalLatitude_range
+    type: range
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      column: decimalLatitude
+      min: -90
+      max: 90
+      inclusive: true
+
+  - id: dwc_decimalLongitude_range
+    type: range
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      column: decimalLongitude
+      min: -180
+      max: 180
+      inclusive: true
+
+  - id: dwc_decimalLatitude_zero_suspicious
+    type: regex
+    severity: warn
+    config:
+      pattern: "occurrence*.tsv"
+      column: decimalLatitude
+      regex: "^\\s*-?0(\\.0+)?\\s*$"
+      mode: matches
+      ignore_empty: true
+
+  - id: dwc_decimalLongitude_zero_suspicious
+    type: regex
+    severity: warn
+    config:
+      pattern: "occurrence*.tsv"
+      column: decimalLongitude
+      regex: "^\\s*-?0(\\.0+)?\\s*$"
+      mode: matches
+      ignore_empty: true
+
+  # Controlled vocabulary / codes
+  - id: dwc_basisOfRecord_enum
+    type: enum
+    severity: warn
+    config:
+      pattern: "occurrence*.tsv"
+      column: basisOfRecord
+      allow:
+        - LivingSpecimen
+        - PreservedSpecimen
+        - FossilSpecimen
+        - MaterialCitation
+        - HumanObservation
+        - MachineObservation
+      normalize: { casefold: true, trim: true}
+
+  - id: dwc_countryCode_iso2
+    type: regex
+    severity: warn
+    config:
+      pattern: "occurrence*.tsv"
+      column: countryCode
+      # Two-letter country codes (ISO 3166-1 alpha-2 style), e.g. US, SE, FR
+      regex: "^[A-Za-z]{2}$"
+      mode: not_matches
+      ignore_empty: true
+
+  - id: dwc_scientificName_present
+    type: required
+    severity: fail
+    config:
+      pattern: "occurrence*.tsv"
+      columns:
+        - scientificName

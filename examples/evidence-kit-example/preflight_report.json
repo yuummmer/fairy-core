@@ -1,0 +1,99 @@
+{
+  "_legacy": {
+    "attestation": {
+      "fail_count": 0,
+      "fairy_core_version": "0.2.3",
+      "fairy_version": "0.2.3",
+      "rulepack_id": "geo_bulk_seq",
+      "rulepack_name": "geo_bulk_seq",
+      "rulepack_source_path": "tests/fixtures/rulepacks/geo_bulk_seq_min_v0_2_0.json",
+      "rulepack_version": "0.2.0",
+      "run_at_utc": "2026-01-31T22:46:00Z",
+      "submission_ready": true,
+      "warn_count": 0
+    },
+    "findings": []
+  },
+  "attestation": {
+    "rulepack_name": "geo_bulk_seq",
+    "rulepack_source_path": "tests/fixtures/rulepacks/geo_bulk_seq_min_v0_2_0.json",
+    "rulepack_version": "0.2.0"
+  },
+  "dataset_id": "sha256:4cecfae2153f0b219230f3e88eb392be580066e98e6fc0949ac092676d80f1e1",
+  "dataset_id_method": {
+    "algorithm": "sha256",
+    "canon_version": "fairy-canon@1",
+    "includes": [
+      "inputs.sha256",
+      "rulepack.sha256",
+      "params.sha256"
+    ]
+  },
+  "engine": {
+    "fairy_core_version": "0.2.3"
+  },
+  "generated_at": "2026-01-31T22:46:00Z",
+  "metadata": {
+    "inputs": {
+      "files": {
+        "header": [
+          "sample_id",
+          "layout",
+          "filename"
+        ],
+        "n_cols": 3,
+        "n_rows": 3,
+        "path": "tests/fixtures/preflight/files.tsv",
+        "sha256": "8ec6eaeb72ce5d853b76876da578dc251d392176a9384544a8eaf6433964d9fe"
+      },
+      "samples": {
+        "header": [
+          "sample_id",
+          "sample_title",
+          "organism",
+          "library_strategy",
+          "molecule",
+          "instrument_model",
+          "tissue",
+          "cell_line",
+          "cell_type",
+          "collection_date"
+        ],
+        "n_cols": 10,
+        "n_rows": 2,
+        "path": "tests/fixtures/preflight/samples.tsv",
+        "sha256": "f965407ccaac8ee80953c634b7ad47a4c7441945dfebb8b5dabdb6657ed37165"
+      }
+    },
+    "params": {
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "rulepack": {
+      "id": "geo_bulk_seq",
+      "params_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "path": "tests/fixtures/rulepacks/geo_bulk_seq_min_v0_2_0.json",
+      "sha256": "3deb6e2cc121fa1da1130f7df3ba5df4f506b0b5b4039c444224add4ef1e5ed8",
+      "version": "0.2.0"
+    }
+  },
+  "results": [
+    {
+      "count": 0,
+      "level": "pass",
+      "rule": "GEO.REQ.MISSING_FIELD",
+      "samples": []
+    }
+  ],
+  "schema_version": "1.0.0",
+  "summary": {
+    "by_level": {
+      "fail": 0,
+      "pass": 1,
+      "warn": 0
+    },
+    "by_rule": {
+      "GEO.REQ.MISSING_FIELD": "pass"
+    },
+    "submission_ready": true
+  }
+}

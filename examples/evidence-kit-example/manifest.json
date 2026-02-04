@@ -1,0 +1,29 @@
+{
+  "created_at_utc": "2026-01-31T22:46:00Z",
+  "dataset_id": "sha256:4cecfae2153f0b219230f3e88eb392be580066e98e6fc0949ac092676d80f1e1",
+  "fairy_version": "0.2.3",
+  "files": [
+    {
+      "path": "preflight_report.json",
+      "role": "report",
+      "sha256": "a7cd21de1d4b17aaf671f63a49e190801ee6416032c55909607fed6f75ecc999"
+    },
+    {
+      "path": "preflight_report.md",
+      "role": "report",
+      "sha256": "931005ad8a2de9cc8d46c1561ba99127553a55c1ca6e8dafc159500add183971"
+    },
+    {
+      "path": "artifacts/inputs_manifest.json",
+      "role": "other",
+      "sha256": "b2dc62ee444a5345a4d893f019cd0227fc8f7c6cedb0222528b7acac59dedb42"
+    }
+  ],
+  "hash_algorithm": "sha256",
+  "rulepack": {
+    "id": "geo_bulk_seq",
+    "version": "0.2.0"
+  },
+  "schema_version": "1.0.0",
+  "source_report": "preflight_report.json"
+}

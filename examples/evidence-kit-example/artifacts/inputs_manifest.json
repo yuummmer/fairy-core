@@ -1,0 +1,15 @@
+{
+  "inputs": [
+    {
+      "name": "samples",
+      "path": "tests/fixtures/preflight/samples.tsv",
+      "sha256": "f965407ccaac8ee80953c634b7ad47a4c7441945dfebb8b5dabdb6657ed37165"
+    },
+    {
+      "name": "files",
+      "path": "tests/fixtures/preflight/files.tsv",
+      "sha256": "8ec6eaeb72ce5d853b76876da578dc251d392176a9384544a8eaf6433964d9fe"
+    }
+  ],
+  "schema_version": "inputs-manifest/v0"
+}

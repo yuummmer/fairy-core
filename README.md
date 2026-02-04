@@ -7,6 +7,11 @@
 # FAIRy Core
 Local-first validator and packager for FAIR-compliant research datasets.
 
+⚠️ **Project status:** We are looking for a new maintainer.
+If you're interested in helping maintain this package,
+please see [this issue](https://github.com/yuummmer/fairy-core/issues/34) or
+get in touch at **hello@datadabra.com**.
+
 **Why FAIRy**
 - **Local-first**: All processing is on your machine. Your raw and fixed data never leave without your consent.
 - **Extensible**: Add new repository templates or contribute improved schemas/rules — keep up with evolving standards.
