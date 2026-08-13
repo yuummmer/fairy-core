@@ -98,6 +98,21 @@ If you’re not sure where something belongs, open an issue and we’ll route it
 
 We will review your PR as soon as we can. Friendly pings on status are welcome.
 ---
+### AI-assisted contributions
+
+AI-assisted contributions are welcome, but contributors are responsible for everything they submit.
+
+If you use AI or automated coding tools, please review and understand the resulting changes before opening a pull request. Make sure that:
+
+* You have reviewed the complete diff yourself.
+* You understand the changes well enough to explain and maintain them.
+* Relevant tests and checks have been run and pass.
+* The changes follow FAIRy-core's existing architecture and conventions.
+* Generated reasoning, prompts, tool output, or other unintended artifacts have been removed.
+
+Please don't submit automatically generated pull requests that you have not personally reviewed. PRs that appear to contain unreviewed generated output may be closed without detailed maintainer review.
+
+---
 
 ## Specs & PRDs
 
