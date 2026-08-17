@@ -5,7 +5,14 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](.pre-commit-config.yaml)
 
 # FAIRy Core
-Local-first validator and packager for FAIR-compliant research datasets.
+
+FAIRy helps research labs, cores, and data managers make datasets submission-ready before handoff.
+
+It provides local-first, rules-based preflight validation for research data and metadata, with actionable fix guidance, provenance, and packaging support for repository submission.
+
+**FAIRy Core** is the open-source validation and packaging engine behind FAIRy. It powers the CLI and can be used by other FAIRy interfaces and workflows.
+
+Learn more about the FAIRy project at [datadabra.com](https://www.datadabra.com/).
 
 ⚠️ **Project status:** We are looking for a new maintainer.
 If you're interested in helping maintain this package,
@@ -15,10 +22,11 @@ get in touch at **hello@datadabra.com**.
 **Why FAIRy**
 - **Local-first**: All processing is on your machine. Your raw and fixed data never leave without your consent.
 - **Extensible**: Add new repository templates or contribute improved schemas/rules — keep up with evolving standards.
-- **Practical**: Catch real submission pain points (dates, IDs, vocab, file names), export clean packages, avoid resubmission headaches.
+- **Practical**: Catch data, metadata, and packaging problems before handoff, with actionable findings that help teams prepare trustworthy, submission-ready datasets.
 
 **What’s in this repo**
-This repo contains the **core validation engine** and **CLI** (e.g., `fairy preflight`, `fairy validate`).
+
+FAIRy Core provides the CLI and reusable engine for FAIRy's validation and packaging workflows (e.g., `fairy preflight`, `fairy validate`).
 
 - ✅ Validates tabular metadata against repository-specific **rulepacks**
 - ✅ Emits **machine-readable** (JSON) and **human-readable** (Markdown) reports
@@ -208,9 +216,6 @@ cannot adopt AGPL. See [`COMMERCIAL.md`](./COMMERCIAL.md) or contact
 
 ---
 
-
----
-
 ## Contributing
 We welcome contributions! See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines on:
 - How to get started (forking, setup, making changes)
@@ -239,14 +244,16 @@ FAIRy Lab (UI & labs): https://github.com/yuummmer/fairy-lab
 For the full roadmap, see [ROADMAP.md](ROADMAP.md).
 
 ---
-
 ## Who FAIRy is for
 
-- Researchers and lab teams tired of “submission rejected → fix → resubmit” loops.
-- Anyone handling sensitive/pre-publication data who needs local-first validation.
-- Curators and institutions who want consistent, transparent, hackable validation templates.
+FAIRy is designed primarily for **research labs, cores, and data managers** responsible for preparing research datasets for handoff and repository submission.
+
+It can also support:
+
+- **Curators and institutions** that need consistent, transparent validation workflows across datasets.
+- **Repository and standards communities** that want to encode submission requirements as reusable rulepacks.
+- **Researchers and contributors** who want to validate datasets locally or contribute rules, schemas, and workflows.
 ---
 ## Pilots / institutional use
 
-Institutions and labs interested in pilots or dashboards — we’d love to hear from you.
-Email **hello@datadabra.com** or open an issue labeled `pilot-inquiry`.
+Labs, cores, and institutions interested in piloting FAIRy in research data preparation and submission workflows — we’d love to hear from you. Email **hello@datadabra.com** or open an issue labeled `pilot-inquiry`.
