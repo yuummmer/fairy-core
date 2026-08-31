@@ -253,6 +253,21 @@ It can also support:
 - **Curators and institutions** that need consistent, transparent validation workflows across datasets.
 - **Repository and standards communities** that want to encode submission requirements as reusable rulepacks.
 - **Researchers and contributors** who want to validate datasets locally or contribute rules, schemas, and workflows.
+
+---
+
+## Integration examples
+
+FAIRy can be embedded as a deterministic validation layer inside external
+workflows and orchestration systems.
+
+See [FAIRy Integration Examples](https://github.com/yuummmer/fairy-integration-examples)
+for reference implementations.
+
+Current example:
+
+- **Workato scientific data handoff** — invokes FAIRy locally from an
+  orchestrated handoff and routes the workflow based on PASS, WARN, or FAIL.
 ---
 ## Pilots / institutional use
 
