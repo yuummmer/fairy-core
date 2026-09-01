@@ -66,3 +66,6 @@ out/
 docs/demos/dslc-demo.md
 docs/internal/
 .deps/
+
+build/
+dist/
