@@ -48,6 +48,7 @@ Each ADR follows a standard template with the following sections:
 | [0005](0005-packaging-as-first-class-packagers.md) | Bundles as first-class output (BagIt first) | Accepted | 2025-12-30 | Preflight profiles + handoff output directory (2026-01-22) |
 | [0006](0006-dataset-fingerprint-and-pass-attestation-ids.md) | Dataset fingerprint and PASS attestation IDs | Proposed | 2026-01-01 | |
 | [0007](0007-profiles-as-workflow-composition.md) | Profiles as workflow composition over rulepacks | Proposed | 2026-01-05 | |
+| [0008](0008-package-level-validation.md) | Package-level validation for incoming submission artifacts | Proposed | 2026-09-03 | |
 
 ## Creating a new ADR
 
