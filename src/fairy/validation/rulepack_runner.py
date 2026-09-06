@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import pandas as pd
+import glob
 
 # Accept both names for the row-duplicates rule (+ foreign_key for multi-input)
 CHECK_TYPES = {
@@ -114,7 +115,6 @@ def run_rulepack(
     params: dict[str, Any] | None = None,
     package_root: Path | None = None,
 ) -> dict[str, Any]:
-    
     """
     Validate one or more inputs using a rulepack.
 
@@ -903,6 +903,7 @@ def check_regex(
         "count": 0,
     }
 
+
 def check_files_present(
     package_root: Path,
     *,
@@ -931,9 +932,14 @@ def check_files_present(
     matched: set[str] = set()
 
     for pat in wanted_patterns:
-        for path in package_root.glob(pat):
+        for match in glob.iglob(
+            pat,
+            root_dir=package_root,
+            recursive=True,
+        ):
+            path = package_root / match
             if path.is_file():
-                matched.add(path.relative_to(package_root).as_posix())
+                matched.add(Path(match).as_posix())
 
     matches = sorted(matched)
 
