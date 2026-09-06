@@ -1,6 +1,7 @@
 # src/fairy/validate/rulepack_runner.py
 from __future__ import annotations
 
+import glob
 import importlib.metadata as md
 import re
 from fnmatch import fnmatch
@@ -25,7 +26,12 @@ CHECK_TYPES = {
     "regex",
 }
 
+PACKAGE_CHECK_TYPES = {
+    "files_present",
+}
+
 MAX_REMEDIATION_LINKS = 20
+MAX_PACKAGE_MATCHES = 20
 
 # URI scheme-ish validation for url checks
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
@@ -108,6 +114,7 @@ def run_rulepack(
     now_iso: str,
     *,
     params: dict[str, Any] | None = None,
+    package_root: Path | None = None,
 ) -> dict[str, Any]:
     """
     Validate one or more inputs using a rulepack.
@@ -122,6 +129,22 @@ def run_rulepack(
     # Schema branches (new vs old)
     new_resources = (rulepack.get("resources") or []) if isinstance(rulepack, dict) else []
     old_rules = (rulepack.get("rules") or []) if isinstance(rulepack, dict) else []
+
+    package_cfg = (rulepack.get("package") or {}) if isinstance(rulepack, dict) else {}
+    package_rules = package_cfg.get("rules", []) or []
+    if package_rules:
+        if package_root is None:
+            raise ValueError(
+                "This rulepack requires a package directory, but no package root was provided."
+            )
+
+        package_root = Path(package_root)
+
+        if not package_root.exists():
+            raise FileNotFoundError(f"Package directory not found: {package_root}")
+
+        if not package_root.is_dir():
+            raise ValueError(f"Package subject is not a directory: {package_root}")
 
     # ---- Load all inputs once (enables cross-table checks)
     frames: dict[str, pd.DataFrame] = {}
@@ -298,6 +321,65 @@ def run_rulepack(
         # Always append a resource block for this input (even if no rules matched)
         res_block = {"name": name, "path": str(path), "rules": resource_rules}
         report["resources"].append(res_block)
+
+    if package_rules and package_root is not None:
+        package_rule_results: list[dict[str, Any]] = []
+
+        for r in sorted(package_rules, key=lambda x: x.get("id", "")):
+            rule_id = r.get("id", "")
+            rtype = (r.get("type", "") or "").strip()
+            severity = (r.get("severity", "fail") or "fail").lower()
+
+            if rtype not in PACKAGE_CHECK_TYPES:
+                status, evidence = "FAIL", {
+                    "error": "unknown_rule_type",
+                    "type": rtype,
+                    "message": (
+                        f"Unknown package rule type '{rtype}'. "
+                        "This rulepack may require a newer version of fairy-core."
+                    ),
+                    "supported_types": sorted(PACKAGE_CHECK_TYPES),
+                }
+            else:
+                try:
+                    if rtype == "files_present":
+                        status, evidence = check_files_present(
+                            package_root,
+                            pattern=r.get("pattern"),
+                            patterns=r.get("patterns"),
+                            min_count=r.get("min_count", 1),
+                            severity=severity,
+                        )
+                except Exception as e:
+                    status, evidence = "FAIL", {
+                        "error": "runtime_error",
+                        "message": str(e),
+                    }
+
+            package_rule_results.append(
+                {
+                    "id": rule_id,
+                    "type": rtype,
+                    "severity": severity,
+                    "status": status,
+                    "evidence": evidence,
+                }
+            )
+
+            if status == "FAIL":
+                report["summary"]["fail"] += 1
+            elif status == "WARN":
+                report["summary"]["warn"] += 1
+            else:
+                report["summary"]["pass"] += 1
+
+        report["resources"].append(
+            {
+                "name": "package",
+                "path": str(package_root.resolve()),
+                "rules": package_rule_results,
+            }
+        )
 
     return report
 
@@ -823,6 +905,59 @@ def check_regex(
     }
 
 
+def check_files_present(
+    package_root: Path,
+    *,
+    pattern: str | None = None,
+    patterns: list[str] | None = None,
+    min_count: int = 1,
+    severity: str = "fail",
+) -> tuple[str, dict[str, Any]]:
+    wanted_patterns: list[str] = []
+
+    if pattern:
+        wanted_patterns.append(pattern)
+
+    if patterns:
+        wanted_patterns.extend(patterns)
+
+    if not wanted_patterns:
+        return "FAIL", {"error": "config_missing_pattern"}
+
+    if not isinstance(min_count, int) or min_count < 0:
+        return "FAIL", {
+            "error": "config_invalid_min_count",
+            "min_count": min_count,
+        }
+
+    matched: set[str] = set()
+
+    for pat in wanted_patterns:
+        for match in glob.iglob(
+            pat,
+            root_dir=package_root,
+            recursive=True,
+        ):
+            path = package_root / match
+            if path.is_file():
+                matched.add(Path(match).as_posix())
+
+    all_matches = sorted(matched)
+
+    evidence = {
+        "patterns": wanted_patterns,
+        "min_count": min_count,
+        "match_count": len(all_matches),
+        "matches": all_matches[:MAX_PACKAGE_MATCHES],
+        "matches_truncated": len(all_matches) > MAX_PACKAGE_MATCHES,
+    }
+
+    if len(all_matches) < min_count:
+        return _status_from_severity(severity), evidence
+
+    return "PASS", evidence
+
+
 # ---------------- Markdown writer (deterministic order) ----------------
 
 
@@ -889,6 +1024,24 @@ def write_markdown(report: dict[str, Any]) -> str:
                     )
 
                 out.append("")
+
+            if rr.get("type") == "files_present":
+                patterns = ev.get("patterns", [])
+                min_count = ev.get("min_count", 1)
+                match_count = ev.get("match_count", 0)
+                matches = ev.get("matches", [])
+
+                if patterns:
+                    out.append("Patterns:")
+                    for pattern in patterns:
+                        out.append(f"- `{pattern}`")
+
+                out.append(f"Matched files: {match_count} " f"(minimum required: {min_count})")
+
+                if matches:
+                    out.append("Matches:")
+                    for match in matches:
+                        out.append(f"- `{match}`")
 
             if "duplicates" in ev:
                 for d in ev["duplicates"]:

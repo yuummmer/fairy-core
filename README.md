@@ -127,7 +127,7 @@ ls .tmp/
 cat .tmp/geo_bulk_seq_report.md | head -n 80  # or open in your editor
 
 ```
-**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`, `regex`
+**Available rule types:** `required`, `unique`, `enum`, `range`, `dup`/`no_duplicate_rows`, `foreign_key`, `url`, `non_empty_trimmed`, `regex`, `files_present`
 
 See [Rule types reference](./docs/rule-types.md) for complete documentation on all rule types and their configuration options.
 ---
