@@ -1023,6 +1023,27 @@ def write_markdown(report: dict[str, Any]) -> str:
 
                 out.append("")
 
+            if rr.get("type") == "files_present":
+                patterns = ev.get("patterns", [])
+                min_count = ev.get("min_count", 1)
+                match_count = ev.get("match_count", 0)
+                matches = ev.get("matches", [])
+
+                if patterns:
+                    out.append("Patterns:")
+                    for pattern in patterns:
+                        out.append(f"- `{pattern}`")
+
+                out.append(
+                    f"Matched files: {match_count} "
+                    f"(minimum required: {min_count})"
+                )
+
+                if matches:
+                    out.append("Matches:")
+                    for match in matches:
+                        out.append(f"- `{match}`")
+
             if "duplicates" in ev:
                 for d in ev["duplicates"]:
                     out.append(f"Duplicates at rows {d.get('rows', [])}")

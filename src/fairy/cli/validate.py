@@ -96,14 +96,12 @@ def main(argv=None) -> int:
     package_cfg = (rulepack.get("package") or {}) if isinstance(rulepack, dict) else {}
     package_rules = package_cfg.get("rules", []) or []
     has_package_rules = bool(package_rules)
-    
+
     if has_package_rules:
         # Package-aware rulepacks require an explicit directory subject.
         positional = _resolve_path_like(Path(args.input)) if args.input else None
         explicit_package_root = (
-            _resolve_path_like(Path(args.package_root).expanduser())
-            if args.package_root
-            else None
+            _resolve_path_like(Path(args.package_root).expanduser()) if args.package_root else None
         )
 
         if explicit_package_root is not None:
