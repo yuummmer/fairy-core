@@ -130,6 +130,7 @@ def test_files_present_warns_when_optional_file_missing(tmp_path: Path):
     assert rule["status"] == "WARN"
     assert rule["evidence"]["match_count"] == 0
 
+
 def test_files_present_glob_semantics(tmp_path: Path):
     (tmp_path / "README.md").write_text("root readme")
 
@@ -188,16 +189,11 @@ def test_files_present_glob_semantics(tmp_path: Path):
         package_root=tmp_path,
     )
 
-    rules = {
-        rule["id"]: rule
-        for rule in report["resources"][0]["rules"]
-    }
+    rules = {rule["id"]: rule for rule in report["resources"][0]["rules"]}
 
     assert rules["root_readme"]["evidence"]["matches"] == ["README.md"]
 
-    assert rules["one_level_csv"]["evidence"]["matches"] == [
-        "data/results.csv"
-    ]
+    assert rules["one_level_csv"]["evidence"]["matches"] == ["data/results.csv"]
 
     assert rules["recursive_data"]["evidence"]["matches"] == [
         "data/nested/more.csv",
@@ -211,6 +207,7 @@ def test_files_present_glob_semantics(tmp_path: Path):
 
     assert report["summary"]["pass"] == 4
     assert report["summary"]["fail"] == 0
+
 
 def test_files_present_supports_multiple_patterns(tmp_path: Path):
     (tmp_path / "analysis.py").write_text("print('hello')")

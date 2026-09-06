@@ -56,6 +56,10 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser("fairy validate")
     # Legacy positional input retained (file OR folder)
     p.add_argument("input", nargs="?", help="CSV file or folder containing CSVs (legacy)")
+    p.add_argument(
+        "--package-root",
+        help="Explicit package directory for rulepacks with package.rules.",
+    )
     # New: repeatable named inputs
     p.add_argument(
         "--inputs",
@@ -84,36 +88,116 @@ def main(argv=None) -> int:
         yaml.safe_load(text) if rp_path.suffix.lower() in (".yml", ".yaml") else json.loads(text)
     )
 
-    # Build inputs mapping
+    # Build inputs mapping and resolve optional package subject
     named_inputs = _parse_inputs(args.inputs)
     inputs_map: dict[str, Path]
+    package_root: Path | None = None
 
-    if named_inputs:
-        # Multi-input mode (explicit)
-        inputs_map = named_inputs
-    else:
-        # Legacy positional mode
-        if not args.input:
-            print("ERROR: provide INPUT or at least one --inputs name=path", file=sys.stderr)
-            return 2
-        inp = _resolve_path_like(Path(args.input))
-        if inp.is_dir():
-            csvs = sorted([p for p in inp.glob("*.csv") if p.is_file()], key=lambda x: x.name)
-            if not csvs:
-                print(f"ERROR: no CSV files found in folder: {inp}", file=sys.stderr)
+    package_cfg = (rulepack.get("package") or {}) if isinstance(rulepack, dict) else {}
+    package_rules = package_cfg.get("rules", []) or []
+    has_package_rules = bool(package_rules)
+    
+    if has_package_rules:
+        # Package-aware rulepacks require an explicit directory subject.
+        positional = _resolve_path_like(Path(args.input)) if args.input else None
+        explicit_package_root = (
+            _resolve_path_like(Path(args.package_root).expanduser())
+            if args.package_root
+            else None
+        )
+
+        if explicit_package_root is not None:
+            if not explicit_package_root.exists():
+                print(
+                    f"ERROR: package directory not found: {explicit_package_root}",
+                    file=sys.stderr,
+                )
                 return 2
-            # name tables by stem: artist.csv -> 'artists'
-            inputs_map = OrderedDict((p.stem, p) for p in csvs)
-        elif inp.is_file():
-            inputs_map = {"default": inp}
+
+            if not explicit_package_root.is_dir():
+                print(
+                    f"ERROR: package subject is not a directory: {explicit_package_root}",
+                    file=sys.stderr,
+                )
+                return 2
+
+            if positional is not None and positional.is_dir():
+                if positional.resolve() != explicit_package_root.resolve():
+                    print(
+                        "ERROR: positional package directory and --package-root "
+                        "refer to different directories",
+                        file=sys.stderr,
+                    )
+                    return 2
+
+            package_root = explicit_package_root
+
+        elif positional is not None and positional.is_dir():
+            package_root = positional
+
         else:
-            print(f"ERROR: input not found: {inp}", file=sys.stderr)
+            print(
+                "ERROR: this rulepack requires a package directory. "
+                "Provide a positional directory or --package-root DIR.",
+                file=sys.stderr,
+            )
             return 2
+
+        # In package mode, tables are explicit.
+        inputs_map = named_inputs
+
+    else:
+        if args.package_root:
+            print(
+                "ERROR: --package-root can only be used with rulepacks containing package.rules",
+                file=sys.stderr,
+            )
+            return 2
+
+        if named_inputs:
+            inputs_map = named_inputs
+        else:
+            # Legacy positional mode
+            if not args.input:
+                print(
+                    "ERROR: provide INPUT or at least one --inputs name=path",
+                    file=sys.stderr,
+                )
+                return 2
+
+            inp = _resolve_path_like(Path(args.input))
+
+            if inp.is_dir():
+                csvs = sorted(
+                    [p for p in inp.glob("*.csv") if p.is_file()],
+                    key=lambda x: x.name,
+                )
+
+                if not csvs:
+                    print(
+                        f"ERROR: no CSV files found in folder: {inp}",
+                        file=sys.stderr,
+                    )
+                    return 2
+
+                inputs_map = OrderedDict((p.stem, p) for p in csvs)
+
+            elif inp.is_file():
+                inputs_map = {"default": inp}
+
+            else:
+                print(f"ERROR: input not found: {inp}", file=sys.stderr)
+                return 2
 
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
-    # NOTE: run_rulepack now expects a dict[str, Path] (name -> path)
-    report = run_rulepack(inputs_map, rulepack, rp_path, now)
+    report = run_rulepack(
+        inputs_map,
+        rulepack,
+        rp_path,
+        now,
+        package_root=package_root,
+    )
 
     if args.report_json:
         out = Path(args.report_json)
@@ -137,6 +221,10 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
     p.add_argument("input", nargs="?", help="CSV file or folder containing CSVs (legacy)")
+    p.add_argument(
+        "--package-root",
+        help="Explicit package directory for rulepacks with package.rules",
+    )
     p.add_argument(
         "--inputs",
         action="append",

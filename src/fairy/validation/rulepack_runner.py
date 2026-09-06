@@ -1,6 +1,7 @@
 # src/fairy/validate/rulepack_runner.py
 from __future__ import annotations
 
+import glob
 import importlib.metadata as md
 import re
 from fnmatch import fnmatch
@@ -10,7 +11,6 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import pandas as pd
-import glob
 
 # Accept both names for the row-duplicates rule (+ foreign_key for multi-input)
 CHECK_TYPES = {
