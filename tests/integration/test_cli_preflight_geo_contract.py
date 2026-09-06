@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 
 def run_cli(args: list[str]) -> subprocess.CompletedProcess:
     """Run the fairy CLI command and return the CompletedProcess."""
-    return subprocess.run(args, capture_output=True, text=True)
+    return subprocess.run(
+        [sys.executable, "-m", "fairy.cli", *args],
+        capture_output=True,
+        text=True
+    )
 
 
 def test_preflight_geo_success_creates_required_artifacts(tmp_path: Path):
@@ -14,7 +19,6 @@ def test_preflight_geo_success_creates_required_artifacts(tmp_path: Path):
     out_dir = tmp_path / "fairy-out"
 
     args = [
-        "fairy",
         "preflight",
         "--rulepack",
         "tests/fixtures/rulepacks/geo_bulk_seq_min_v0_2_0.json",
@@ -59,7 +63,6 @@ def test_preflight_geo_missing_files_path_hard_fails_no_out_dir(tmp_path: Path):
     missing_files = tmp_path / "MISSING_files.tsv"  # does not exist
 
     args = [
-        "fairy",
         "preflight",
         "--rulepack",
         "tests/fixtures/rulepacks/geo_bulk_seq_min_v0_2_0.json",

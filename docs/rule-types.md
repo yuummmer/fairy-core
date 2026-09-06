@@ -15,8 +15,7 @@ FAIRy supports the following rule types:
 7. [`url`](#url) - Validates URL format and allowed schemes
 8. [`non_empty_trimmed`](#non_empty_trimmed) - Ensures a column is non-empty after trimming whitespace
 9. ['regex`](#regex) - Validates string formats or flags forbidden patterns using regular expressions
-
----
+10. ['files_present`](#files_present) - Ensures required files are present in package directory
 
 ## `required`
 
@@ -387,9 +386,90 @@ This rule is useful for IDs (accessions, specimen IDs, sample IDs), code-like fi
 
 ---
 
+## `files_present`
+
+Ensures that a package directory contains the expected files. Unlike table-level rules, `files_present` evaluates the package layout itself rather than the contents of a CSV or TSV file.
+
+Package rules are declared under `package.rules`.
+
+### Configuration
+
+- `pattern` (string, optional): A glob pattern identifying files to match
+- `patterns` (list of strings, optional): Multiple glob patterns to match
+- `min_count` (integer, optional): Minimum number of matching files required (default: `1`; `0` is allowed)
+- `severity` (string): `fail` or `warn`
+
+At least one of `pattern` or `patterns` must be provided.
+
+### Example
+
+```yaml
+package:
+  rules:
+    - id: readme_present
+      type: files_present
+      severity: fail
+      pattern: "README*"
+      min_count: 1
+
+    - id: code_present
+      type: files_present
+      severity: warn
+      patterns:
+        - "*.R"
+        - "*.py"
+        - "*.ipynb"
+      min_count: 1
+```
+
+### Glob semantics
+
+Patterns are matched against paths relative to the package directory using `/` as the path separator.
+
+- `README*` - Files matching `README*` at the package root
+- `**/README*` - Matching README files at any depth
+- `data/*.csv` - CSV files directly inside `data/`
+- `data/**` - Files at any depth beneath `data/`
+
+Only files count as matches. Matching directories do not contribute to `min_count`.
+
+When multiple patterns match the same file, that file is counted once.
+
+### What it checks
+
+- The package contains at least `min_count` files matching the configured pattern or patterns
+- Matches are reported as relative paths in deterministic sorted order
+
+### Failure conditions
+
+- Fewer than `min_count` matching files are present
+- Neither `pattern` nor `patterns` is configured
+- `min_count` is invalid
+
+A missing required artifact is a validation finding (`FAIL` or `WARN`, according to severity), not a CLI usage error. A missing or invalid package directory itself is a usage error.
+
+### CLI usage
+
+The package directory can be supplied positionally:
+
+```bash
+fairy validate ./submission \
+  --rulepack package-layout.yaml
+```
+
+Or explicitly:
+
+```bash
+fairy validate \
+  --package-root ./submission \
+  --rulepack package-layout.yaml
+```
+
+For a rulepack containing `package.rules`, table inputs are explicit and can be added with `--inputs name=path`.
+
 ## Rule structure
 
-All rules follow this basic structure:
+Table-level rules follow this basic structure:
 
 ```yaml
 - id: <unique-rule-identifier>
@@ -410,6 +490,8 @@ All rules follow this basic structure:
 - `config` (dict, required): Type-specific configuration (always includes `pattern`)
 - `remediation_link_column` (string, optional): Column name containing URLs for fixing failures. When a rule fails, values from this column are included in the failure evidence so users can click through to fix issues in the source system.
 - `remediation_link_label` (string, optional): Human-readable label for the remediation link (e.g., "Open record in portal"). Defaults to the column name if not specified.
+
+Package-level rules use the separate `package.rules` structure described in [`files_present`](#files_present). They operate on a package directory rather than an individual table.
 
 ### YAML syntax tips
 

@@ -2,7 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from fairy.validation.rulepack_runner import run_rulepack
+from fairy.validation.rulepack_runner import (
+    MAX_PACKAGE_MATCHES,
+    check_files_present,
+    run_rulepack,
+)
 
 
 def test_package_rules_require_package_root(tmp_path: Path):
@@ -250,3 +254,19 @@ def test_files_present_supports_multiple_patterns(tmp_path: Path):
         "*.ipynb",
     ]
     assert rule["evidence"]["matches"] == ["analysis.py"]
+
+def test_files_present_caps_match_evidence(tmp_path: Path):
+    for i in range(MAX_PACKAGE_MATCHES + 5):
+        (tmp_path / f"file-{i:02d}.txt").write_text("x", encoding="utf-8")
+
+    status, evidence = check_files_present(
+        tmp_path,
+        pattern="*.txt",
+        min_count=1,
+        severity="fail",
+    )
+
+    assert status == "PASS"
+    assert evidence["match_count"] == MAX_PACKAGE_MATCHES + 5
+    assert len(evidence["matches"]) == MAX_PACKAGE_MATCHES
+    assert evidence["matches_truncated"] is True

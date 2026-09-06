@@ -31,6 +31,7 @@ PACKAGE_CHECK_TYPES = {
 }
 
 MAX_REMEDIATION_LINKS = 20
+MAX_PACKAGE_MATCHES = 20
 
 # URI scheme-ish validation for url checks
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
@@ -941,16 +942,17 @@ def check_files_present(
             if path.is_file():
                 matched.add(Path(match).as_posix())
 
-    matches = sorted(matched)
+    all_matches = sorted(matched)
 
     evidence = {
         "patterns": wanted_patterns,
         "min_count": min_count,
-        "match_count": len(matches),
-        "matches": matches,
+        "match_count": len(all_matches),
+        "matches": all_matches[:MAX_PACKAGE_MATCHES],
+        "matches_truncated": len(all_matches) > MAX_PACKAGE_MATCHES,
     }
 
-    if len(matches) < min_count:
+    if len(all_matches) < min_count:
         return _status_from_severity(severity), evidence
 
     return "PASS", evidence
@@ -1034,10 +1036,7 @@ def write_markdown(report: dict[str, Any]) -> str:
                     for pattern in patterns:
                         out.append(f"- `{pattern}`")
 
-                out.append(
-                    f"Matched files: {match_count} "
-                    f"(minimum required: {min_count})"
-                )
+                out.append(f"Matched files: {match_count} " f"(minimum required: {min_count})")
 
                 if matches:
                     out.append("Matches:")
