@@ -990,15 +990,19 @@ def write_markdown(report: dict[str, Any]) -> str:
         f"- PASS: {report.get('summary', {}).get('pass', 0)}",
         f"- WARN: {report.get('summary', {}).get('warn', 0)}",
         f"- FAIL: {report.get('summary', {}).get('fail', 0)}",
-        "",
-        "## Inputs",
     ]
-    for i in att.get("inputs", []):
-        path = i.get("path", "")
-        sh = i.get("sha256", "")
-        rows = i.get("rows", "")
-        bytes_ = i.get("bytes", "")
-        out.append(f"- `{path}` — sha256={sh}, rows={rows}, bytes={bytes_}")
+    inputs = att.get("inputs", []) or []
+    if inputs:
+        out += [
+            "",
+            "## Inputs",
+        ]
+        for i in inputs:
+            path = i.get("path", "")
+            sh = i.get("sha256", "")
+            rows = i.get("rows", "")
+            bytes_ = i.get("bytes", "")
+            out.append(f"- `{path}` — sha256={sh}, rows={rows}, bytes={bytes_}")
 
     out.append("")
     for res in sorted(report.get("resources", []), key=lambda r: r.get("path", "")):
