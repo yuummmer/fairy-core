@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 import pandas as pd
 
 from .package_checks import (
+    MAX_PACKAGE_MATCHES,
     check_files_present,
     check_referenced_artifacts,
 )
@@ -1012,6 +1013,27 @@ def write_markdown(report: dict[str, Any]) -> str:
                     out.append("Matches:")
                     for match in matches:
                         out.append(f"- `{match}`")
+
+            if rr.get("type") == "referenced_artifacts":
+                reference_count = ev.get("reference_count", 0)
+                missing_count = ev.get("missing_count", 0)
+                missing = ev.get("missing", [])
+
+                out.append(f"References checked: {reference_count}")
+                out.append(f"Missing references: {missing_count}")
+
+                if missing:
+                    out.append("Missing artifacts:")
+                    for item in missing:
+                        out.append(
+                            f"- Row {item.get('row')}, `{item.get('column')}`"
+                        )
+                        out.append(
+                            f"  - Reference: `{item.get('reference')}`"
+                        )
+                        out.append(
+                            f"  - Resolved: `{item.get('resolved')}`"
+                        )
 
             if "duplicates" in ev:
                 for d in ev["duplicates"]:

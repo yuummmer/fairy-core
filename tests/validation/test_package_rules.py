@@ -6,6 +6,7 @@ from fairy.validation.rulepack_runner import (
     MAX_PACKAGE_MATCHES,
     check_files_present,
     run_rulepack,
+    write_markdown,
 )
 
 
@@ -472,3 +473,46 @@ def test_referenced_artifacts_reports_missing_pwd_reference(tmp_path: Path):
             "resolved": "pe-64/s2-r2.fastq.gz",
         }
     ]
+
+def test_referenced_artifacts_markdown_includes_missing_reference_details(tmp_path: Path):
+    reads = tmp_path / "pe-64"
+    reads.mkdir()
+
+    manifest = tmp_path / "manifest.tsv"
+    manifest.write_text(
+        "sample-id\tforward-path\n"
+        "sample2\t$PWD/pe-64/s2-r2.fastq.gz\n",
+        encoding="utf-8",
+    )
+
+    rulepack = {
+        "id": "test-referenced-artifacts-markdown",
+        "version": "0.1.0",
+        "package": {
+            "rules": [
+                {
+                    "id": "reads_exist",
+                    "type": "referenced_artifacts",
+                    "severity": "fail",
+                    "resource": "manifest",
+                    "columns": ["forward-path"],
+                }
+            ]
+        },
+    }
+
+    report = run_rulepack(
+        {"manifest": manifest},
+        rulepack,
+        tmp_path / "rulepack.yml",
+        "2026-09-07T00:00:00Z",
+        package_root=tmp_path,
+    )
+
+    markdown = write_markdown(report)
+
+    assert "References checked: 1" in markdown
+    assert "Missing references: 1" in markdown
+    assert "Row 1, `forward-path`" in markdown
+    assert "Reference: `$PWD/pe-64/s2-r2.fastq.gz`" in markdown
+    assert "Resolved: `pe-64/s2-r2.fastq.gz`" in markdown
