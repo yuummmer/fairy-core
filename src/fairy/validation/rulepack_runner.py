@@ -11,7 +11,11 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 
-from .package_checks import MAX_PACKAGE_MATCHES, check_files_present
+from .package_checks import (
+    MAX_PACKAGE_MATCHES,
+    check_files_present,
+    check_referenced_artifacts,
+)
 
 # Accept both names for the row-duplicates rule (+ foreign_key for multi-input)
 CHECK_TYPES = {
@@ -29,6 +33,7 @@ CHECK_TYPES = {
 
 PACKAGE_CHECK_TYPES = {
     "files_present",
+    "referenced_artifacts",
 }
 
 MAX_REMEDIATION_LINKS = 20
@@ -350,6 +355,25 @@ def run_rulepack(
                             min_count=r.get("min_count", 1),
                             severity=severity,
                         )
+                    elif rtype == "referenced_artifacts":
+                        resource = r.get("resource")
+
+                        if not resource:
+                            status, evidence = "FAIL", {
+                                "error": "config_missing_resource",
+                            }
+                        elif resource not in frames:
+                            status, evidence = "FAIL", {
+                                "error": "config_unknown_resource",
+                                "resource": resource,
+                            }
+                        else:
+                            status, evidence = check_referenced_artifacts(
+                                package_root,
+                                frames[resource],
+                                columns=r.get("columns"),
+                                severity=severity,
+                            )
                 except Exception as e:
                     status, evidence = "FAIL", {
                         "error": "runtime_error",
@@ -989,6 +1013,27 @@ def write_markdown(report: dict[str, Any]) -> str:
                     out.append("Matches:")
                     for match in matches:
                         out.append(f"- `{match}`")
+
+            if rr.get("type") == "referenced_artifacts":
+                reference_count = ev.get("reference_count", 0)
+                missing_count = ev.get("missing_count", 0)
+                missing = ev.get("missing", [])
+
+                out.append(f"References checked: {reference_count}")
+                out.append(f"Missing references: {missing_count}")
+
+                if missing:
+                    out.append("Missing artifacts:")
+                    for item in missing:
+                        out.append(
+                            f"- Row {item.get('row')}, `{item.get('column')}`"
+                        )
+                        out.append(
+                            f"  - Reference: `{item.get('reference')}`"
+                        )
+                        out.append(
+                            f"  - Resolved: `{item.get('resolved')}`"
+                        )
 
             if "duplicates" in ev:
                 for d in ev["duplicates"]:
