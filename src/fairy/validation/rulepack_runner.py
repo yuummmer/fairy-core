@@ -1,7 +1,6 @@
 # src/fairy/validate/rulepack_runner.py
 from __future__ import annotations
 
-import glob
 import importlib.metadata as md
 import re
 from fnmatch import fnmatch
@@ -11,6 +10,8 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import pandas as pd
+
+from .package_checks import MAX_PACKAGE_MATCHES, check_files_present
 
 # Accept both names for the row-duplicates rule (+ foreign_key for multi-input)
 CHECK_TYPES = {
@@ -31,7 +32,6 @@ PACKAGE_CHECK_TYPES = {
 }
 
 MAX_REMEDIATION_LINKS = 20
-MAX_PACKAGE_MATCHES = 20
 
 # URI scheme-ish validation for url checks
 _SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*$")
@@ -903,59 +903,6 @@ def check_regex(
         "ignore_empty": bool(ignore_empty),
         "count": 0,
     }
-
-
-def check_files_present(
-    package_root: Path,
-    *,
-    pattern: str | None = None,
-    patterns: list[str] | None = None,
-    min_count: int = 1,
-    severity: str = "fail",
-) -> tuple[str, dict[str, Any]]:
-    wanted_patterns: list[str] = []
-
-    if pattern:
-        wanted_patterns.append(pattern)
-
-    if patterns:
-        wanted_patterns.extend(patterns)
-
-    if not wanted_patterns:
-        return "FAIL", {"error": "config_missing_pattern"}
-
-    if not isinstance(min_count, int) or min_count < 0:
-        return "FAIL", {
-            "error": "config_invalid_min_count",
-            "min_count": min_count,
-        }
-
-    matched: set[str] = set()
-
-    for pat in wanted_patterns:
-        for match in glob.iglob(
-            pat,
-            root_dir=package_root,
-            recursive=True,
-        ):
-            path = package_root / match
-            if path.is_file():
-                matched.add(Path(match).as_posix())
-
-    all_matches = sorted(matched)
-
-    evidence = {
-        "patterns": wanted_patterns,
-        "min_count": min_count,
-        "match_count": len(all_matches),
-        "matches": all_matches[:MAX_PACKAGE_MATCHES],
-        "matches_truncated": len(all_matches) > MAX_PACKAGE_MATCHES,
-    }
-
-    if len(all_matches) < min_count:
-        return _status_from_severity(severity), evidence
-
-    return "PASS", evidence
 
 
 # ---------------- Markdown writer (deterministic order) ----------------
